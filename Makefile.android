@@ -13,6 +13,10 @@ dep = $(src:.c=.d)
 name = andemo
 lib_so = lib$(name).so
 
+pkgprefix = com.mutantstargoat
+pkg = $(pkgprefix).$(name)
+act = android.app.NativeActivity
+
 warn = -pedantic -Wall
 dbg = -g
 opt = -O3 -ffast-math -fno-strict-aliasing
@@ -32,8 +36,8 @@ $(name).aligned.apk: $(name).unsigned.apk
 	zipalign -f -p 4 $< $@
 
 $(name).unsigned.apk: $(lib_so) AndroidManifest.xml
-	mkdir -p apkbuild/lib/aarch64
-	cp $(lib_so) apkbuild/lib/aarch64
+	mkdir -p apkbuild/lib/arm64-v8a
+	cp $(lib_so) apkbuild/lib/arm64-v8a
 	aapt package -f -v -F $@ -I $(PLATFORM_JAR) -M AndroidManifest.xml apkbuild
 
 $(lib_so): $(obj)
@@ -51,3 +55,19 @@ clean:
 .PHONY: cleandep
 cleandep:
 	rm -f $(dep)
+
+.PHONY: install
+install: $(name).apk
+	adb install -r $(name).apk
+
+.PHONY: uninstall
+uninstall:
+	adb uninstall $(pkg)
+
+.PHONY: run
+run:
+	adb shell am start -n $(pkg)/$(act)
+
+.PHONY: stop
+stop:
+	adb shell am force-stop $(pkg)

@@ -9,6 +9,7 @@
 	<application android:label="andemo" android:hasCode="false"
 			android:debuggable="true">
 		<activity android:name="android.app.NativeActivity"
+				android:exported="true"
 				android:screenOrientation="userLandscape"
 				android:label="andemo">
 			<meta-data android:name="android.app.lib_name"
