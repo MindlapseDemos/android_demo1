@@ -1,0 +1,31 @@
+NDK ?= /usr/lib/android-ndk
+CCSYSROOT = $(NDK)/sysroot
+ISYS = $(CCSYSROOT)/usr/include/aarch64-linux-android
+LDSYSROOT = $(NDK)/platforms/anrdoid-21/arch-arm64
+TCPATH = $(NDK)/toolchains/llvm/prebuilt/linux-$(shell uname -m)/bin
+TC = $(TCPATH)/aarch64-linux-android21-
+
+src = $(wildcard src/*.c) $(wildcard src/android/*.c)
+obj = $(src:.c=.arm64.o)
+dep = $(src:.c=.d)
+lib_so = libandemo.so
+
+CC = $(TC)clang
+CFLAGS = --sysroot=$(CCSYSROOT) -isystem=$(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
+LDFLAGS = --sysroot=$(LDSYSROOT) -lEGL -lGLESv2
+
+$(lib_so): $(obj)
+	$(CC) -o $@ -shared $(obj) $(LDFLAGS)
+
+-include $(dep)
+
+%.arm64.o: %.c
+	$(CC) -o $@ $(CFLAGS) -c $<
+
+.PHONY: clean
+clean:
+	rm -f $(obj) $(lib_so)
+
+.PHONY: cleandep
+cleandep:
+	rm -f $(dep)
