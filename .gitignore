@@ -3,3 +3,5 @@
 *.swp
 demo
 *.so
+*.apk*
+keystore.jks

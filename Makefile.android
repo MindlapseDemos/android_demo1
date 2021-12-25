@@ -1,18 +1,40 @@
+SDK ?= /usr/lib/android-sdk
 NDK ?= /usr/lib/android-ndk
 CCSYSROOT = $(NDK)/sysroot
 ISYS = $(CCSYSROOT)/usr/include/aarch64-linux-android
-LDSYSROOT = $(NDK)/platforms/anrdoid-21/arch-arm64
+LDSYSROOT = $(NDK)/platforms/android-23/arch-arm64
+PLATFORM_JAR = $(SDK)/platforms/android-23/android.jar
 TCPATH = $(NDK)/toolchains/llvm/prebuilt/linux-$(shell uname -m)/bin
-TC = $(TCPATH)/aarch64-linux-android21-
+TC = $(TCPATH)/aarch64-linux-android23-
 
 src = $(wildcard src/*.c) $(wildcard src/android/*.c)
 obj = $(src:.c=.arm64.o)
 dep = $(src:.c=.d)
-lib_so = libandemo.so
+name = andemo
+lib_so = lib$(name).so
+
+warn = -pedantic -Wall
+dbg = -g
+opt = -O3 -ffast-math -fno-strict-aliasing
+incdir = -Isrc
 
 CC = $(TC)clang
 CFLAGS = --sysroot=$(CCSYSROOT) -isystem=$(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
 LDFLAGS = --sysroot=$(LDSYSROOT) -lEGL -lGLESv2
+
+$(name).apk: $(name).aligned.apk keystore.jks
+	apksigner sign --ks keystore.jks --ks-key-alias androidkey --ks-pass pass:android --key-pass pass:android --out $@ $<
+
+keystore.jks:
+	keytool -genkeypair -keystore $@ -alias androidkey -validity 10000 -keyalg RSA -keysize 2048 -storepass android -keypass android
+
+$(name).aligned.apk: $(name).unsigned.apk
+	zipalign -f -p 4 $< $@
+
+$(name).unsigned.apk: $(lib_so) AndroidManifest.xml
+	mkdir -p apkbuild/lib/aarch64
+	cp $(lib_so) apkbuild/lib/aarch64
+	aapt package -f -v -F $@ -I $(PLATFORM_JAR) -M AndroidManifest.xml apkbuild
 
 $(lib_so): $(obj)
 	$(CC) -o $@ -shared $(obj) $(LDFLAGS)
