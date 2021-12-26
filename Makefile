@@ -59,6 +59,14 @@ android-clean:
 android-libs:
 	$(MAKE) -f Makefile.android libs
 
+.PHONY: run
+run:
+	$(MAKE) -f Makefile.android install run
+
+.PHONY: stop
+stop:
+	$(MAKE) -f Makefile.android stop
+
 .PHONY: cross
 cross:
 	$(MAKE) CC=i686-w64-mingw32-gcc sys=mingw
