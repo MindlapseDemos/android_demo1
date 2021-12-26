@@ -25,7 +25,7 @@ libdir = -Llibs/android
 
 CC = $(TC)clang
 CFLAGS = $(CCSYSROOT) $(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
-LDFLAGS = $(LDSYSROOT) $(libdir) -landroid -llog -lEGL -lGLESv2 -limago
+LDFLAGS = $(LDSYSROOT) $(libdir) -lm -landroid -llog -lEGL -lGLESv2 -limago
 
 $(name).apk: $(name).aligned.apk keystore.jks
 	apksigner sign --ks keystore.jks --ks-key-alias androidkey --ks-pass pass:android --key-pass pass:android --out $@ $<
@@ -42,10 +42,10 @@ $(name).unsigned.apk: $(lib_so) AndroidManifest.xml
 	mkdir -p apkbuild/assets
 	cp -r data apkbuild/assets
 	cp -r sdr apkbuild/assets
-	aapt package -f -v -F $@ -I $(PLATFORM_JAR) -M AndroidManifest.xml apkbuild
+	aapt package -f -F $@ -I $(PLATFORM_JAR) -M AndroidManifest.xml apkbuild
 
 $(lib_so): $(obj) Makefile.android
-	$(CC) -o $@ -shared $(obj) $(LDFLAGS)
+	$(CC) -o $@ -shared -Wl,-soname,$(lib_so) $(obj) $(LDFLAGS)
 
 -include $(dep)
 
@@ -84,3 +84,7 @@ run:
 .PHONY: stop
 stop:
 	adb shell am force-stop $(pkg)
+
+.PHONY: logcat
+logcat:
+	adb logcat $(name):V AndroidRuntime:V DEBUG:V '*:S'

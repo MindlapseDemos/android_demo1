@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "demo.h"
 #include "opengl.h"
 #include "sanegl.h"

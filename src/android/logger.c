@@ -6,7 +6,7 @@
 #include "logger.h"
 
 #ifndef APP_NAME
-#define APP_NAME	"xmas_inferno"
+#define APP_NAME	"andemo"
 #endif
 
 static void *thread_func(void *arg);

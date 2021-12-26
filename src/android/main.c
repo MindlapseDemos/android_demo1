@@ -12,11 +12,12 @@ static int handle_touch_input(struct android_app *app, AInputEvent *ev);
 static int init_gl(void);
 static void destroy_gl(void);
 
-static struct android_app *app;
+struct android_app *app;
+
 static EGLDisplay dpy;
 static EGLSurface surf;
 static EGLContext ctx;
-static int running;
+static int init_done, paused;
 
 static int width, height;
 
@@ -43,7 +44,7 @@ void android_main(struct android_app *app_ptr)
 		if(app->destroyRequested) {
 			return;
 		}
-		if(running) {
+		if(init_done && !paused) {
 			demo_display();
 			eglSwapBuffers(dpy, surf);
 		}
@@ -56,10 +57,10 @@ static void handle_command(struct android_app *app, int32_t cmd)
 
 	switch(cmd) {
 	case APP_CMD_PAUSE:
-		running = 0;	/* TODO: handle timers */
+		paused = 1;	/* TODO: handle timers */
 		break;
 	case APP_CMD_RESUME:
-		running = 1;
+		paused = 0;
 		break;
 
 	case APP_CMD_INIT_WINDOW:
@@ -70,11 +71,11 @@ static void handle_command(struct android_app *app, int32_t cmd)
 			exit(1);
 		}
 		demo_reshape(width, height);
-		running = 1;
+		init_done = 1;
 		break;
 
 	case APP_CMD_TERM_WINDOW:
-		running = 0;
+		init_done = 0;
 		demo_cleanup();
 		destroy_gl();
 		break;

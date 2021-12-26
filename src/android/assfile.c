@@ -4,7 +4,7 @@
 #include "assfile.h"
 #include "android_native_app_glue.h"
 
-struct android_app *app;	/* defined in android/amain.c */
+extern struct android_app *app;	/* defined in android/main.c */
 
 static int putback_buf = -1;
 

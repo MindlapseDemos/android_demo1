@@ -1,0 +1,4 @@
+#!/bin/sh
+
+make -f Makefile.android install && \
+	make -f Makefile.android run

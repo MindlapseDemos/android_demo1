@@ -47,6 +47,17 @@ libs:
 clean-libs:
 	$(MAKE) -C libs clean
 
+.PHONY: android
+android:
+	$(MAKE) -f Makefile.android
+
+.PHONY: android-clean
+android-clean:
+	$(MAKE) -f Makefile.android clean
+
+.PHONY: android-libs
+android-libs:
+	$(MAKE) -f Makefile.android libs
 
 .PHONY: cross
 cross:
