@@ -1,8 +1,8 @@
 SDK ?= /usr/lib/android-sdk
 NDK ?= /usr/lib/android-ndk
-CCSYSROOT = $(NDK)/sysroot
-ISYS = $(CCSYSROOT)/usr/include/aarch64-linux-android
-LDSYSROOT = $(NDK)/platforms/android-23/arch-arm64
+CCSYSROOT = --sysroot=$(NDK)/sysroot
+ISYS = --isystem=$(CCSYSROOT)/usr/include/aarch64-linux-android
+LDSYSROOT = --sysroot=$(NDK)/platforms/android-23/arch-arm64
 PLATFORM_JAR = $(SDK)/platforms/android-23/android.jar
 TCPATH = $(NDK)/toolchains/llvm/prebuilt/linux-$(shell uname -m)/bin
 TC = $(TCPATH)/aarch64-linux-android23-
@@ -23,8 +23,8 @@ opt = -O3 -ffast-math -fno-strict-aliasing
 incdir = -Isrc
 
 CC = $(TC)clang
-CFLAGS = --sysroot=$(CCSYSROOT) -isystem=$(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
-LDFLAGS = --sysroot=$(LDSYSROOT) -landroid -llog -lEGL -lGLESv2
+CFLAGS = $(CCSYSROOT) $(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
+LDFLAGS = $(LDSYSROOT) -landroid -llog -lEGL -lGLESv2
 
 $(name).apk: $(name).aligned.apk keystore.jks
 	apksigner sign --ks keystore.jks --ks-key-alias androidkey --ks-pass pass:android --key-pass pass:android --out $@ $<
