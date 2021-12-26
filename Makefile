@@ -7,11 +7,11 @@ warn = -pedantic -Wall
 dbg = -g
 #opt = -O3 -ffast-math -fno-strict-aliasing
 def = -DMINIGLUT_USE_LIBC -DGLEW_STATIC
-incdir = -Isrc -Ilibs/imago/src -Ilibs/glew
+incdir = -Isrc -Ilibs -Ilibs/imago/src -Ilibs/glew
 libdir = -Llibs/unix
 
 CFLAGS = $(warn) $(dbg) $(opt) $(def) $(incdir) -fcommon -MMD
-LDFLAGS = $(libdir) $(libsys) $(libgl) -lm -limago
+LDFLAGS = $(libdir) $(libsys) $(libgl) -limago -lpsys -lanim $(libc)
 
 sys ?= $(shell uname -s | sed 's/MINGW.*/mingw/')
 ifeq ($(sys), mingw)
@@ -20,11 +20,13 @@ ifeq ($(sys), mingw)
 	libgl = -lopengl32
 	libsys = -lmingw32 -lgdi32 -lwinmm -mconsole
 	libdir = -Llibs/w32
+	libc = -lm
 else
 	libgl = -lGL -lX11 -lXext
+	libc = -lm -ldl
 endif
 
-$(bin): $(obj)
+$(bin): $(obj) Makefile
 	$(CC) -o $@ $(obj) $(LDFLAGS)
 
 -include $(dep)

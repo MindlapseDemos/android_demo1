@@ -1,8 +1,9 @@
 .PHONY: all
-all: imago
+all: imago anim psys
 
 .PHONY: clean
-clean: clean-imago
+clean: clean-imago clean-anim clean-psys
+
 
 .PHONY: imago
 imago:
@@ -11,3 +12,19 @@ imago:
 .PHONY: clean-imago
 clean-imago:
 	$(MAKE) -C imago clean
+
+.PHONY: anim
+anim:
+	$(MAKE) -C anim
+
+.PHONY: clean-anim
+clean-anim:
+	$(MAKE) -C anim clean
+
+.PHONY: psys
+psys:
+	$(MAKE) -C psys
+
+.PHONY: clean-psys
+clean-psys:
+	$(MAKE) -C psys clean
