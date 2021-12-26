@@ -18,12 +18,6 @@
 
 #include <GL/glew.h>
 
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
-#endif	/* __APPLE__ */
-
 #endif	/* IPHONE */
 
 int init_opengl(void);

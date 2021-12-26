@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "opengl.h"
 #include "miniglut.h"
 #include "demo.h"
 

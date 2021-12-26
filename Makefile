@@ -11,7 +11,7 @@ incdir = -Isrc -Ilibs/imago/src -Ilibs/glew
 libdir = -Llibs/unix
 
 CFLAGS = $(warn) $(dbg) $(opt) $(def) $(incdir) -fcommon -MMD
-LDFLAGS = $(libsys) $(libgl) -lm -limago
+LDFLAGS = $(libdir) $(libsys) $(libgl) -lm -limago
 
 sys ?= $(shell uname -s | sed 's/MINGW.*/mingw/')
 ifeq ($(sys), mingw)
@@ -19,6 +19,7 @@ ifeq ($(sys), mingw)
 	bin = demo.exe
 	libgl = -lopengl32
 	libsys = -lmingw32 -lgdi32 -lwinmm -mconsole
+	libdir = -Llibs/w32
 else
 	libgl = -lGL -lX11 -lXext
 endif

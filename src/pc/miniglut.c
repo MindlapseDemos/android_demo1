@@ -1764,7 +1764,9 @@ static void panic(const char *msg)
 
 #ifdef MINIGLUT_USE_LIBC
 #include <stdlib.h>
-#ifdef __unix__
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <unistd.h>
 #endif
 
