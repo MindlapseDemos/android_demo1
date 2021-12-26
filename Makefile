@@ -1,4 +1,4 @@
-src = $(wildcard src/*.c) $(wildcard src/pc/*.c)
+src = $(wildcard src/*.c) $(wildcard src/pc/*.c) libs/glew/glew.c
 obj = $(src:.c=.o)
 dep = $(src:.c=.d)
 bin = demo
@@ -6,11 +6,12 @@ bin = demo
 warn = -pedantic -Wall
 dbg = -g
 #opt = -O3 -ffast-math -fno-strict-aliasing
-def = -DMINIGLUT_USE_LIBC
-incdir = -Isrc
+def = -DMINIGLUT_USE_LIBC -DGLEW_STATIC
+incdir = -Isrc -Ilibs/imago/src -Ilibs/glew
+libdir = -Llibs/unix
 
 CFLAGS = $(warn) $(dbg) $(opt) $(def) $(incdir) -fcommon -MMD
-LDFLAGS = $(libsys) $(libgl) -lm
+LDFLAGS = $(libsys) $(libgl) -lm -limago
 
 sys ?= $(shell uname -s | sed 's/MINGW.*/mingw/')
 ifeq ($(sys), mingw)

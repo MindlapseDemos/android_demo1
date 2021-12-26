@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
-
 #include "demo.h"
 #include "android_native_app_glue.h"
+#include "logger.h"
 
 static void handle_command(struct android_app *app, int32_t cmd);
 static int handle_input(struct android_app *app, AInputEvent *ev);
@@ -27,6 +27,8 @@ void android_main(struct android_app *app_ptr)
 
 	app->onAppCmd = handle_command;
 	app->onInputEvent = handle_input;
+
+	start_logger();
 
 	for(;;) {
 		int num_events;

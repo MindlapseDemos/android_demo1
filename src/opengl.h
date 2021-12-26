@@ -26,4 +26,6 @@
 
 #endif	/* IPHONE */
 
+int init_opengl(void);
+
 #endif	/* OPENGL_H_ */

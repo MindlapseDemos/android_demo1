@@ -5,3 +5,5 @@ demo
 *.so
 *.apk*
 keystore.jks
+*.a
+data

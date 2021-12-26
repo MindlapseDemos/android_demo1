@@ -20,11 +20,12 @@ act = android.app.NativeActivity
 warn = -pedantic -Wall
 dbg = -g
 opt = -O3 -ffast-math -fno-strict-aliasing
-incdir = -Isrc
+incdir = -Isrc -Ilibs/imago/src
+libdir = -Llibs/android
 
 CC = $(TC)clang
 CFLAGS = $(CCSYSROOT) $(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
-LDFLAGS = $(LDSYSROOT) -landroid -llog -lEGL -lGLESv2
+LDFLAGS = $(LDSYSROOT) $(libdir) -landroid -llog -lEGL -lGLESv2 -limago
 
 $(name).apk: $(name).aligned.apk keystore.jks
 	apksigner sign --ks keystore.jks --ks-key-alias androidkey --ks-pass pass:android --key-pass pass:android --out $@ $<
@@ -38,9 +39,12 @@ $(name).aligned.apk: $(name).unsigned.apk
 $(name).unsigned.apk: $(lib_so) AndroidManifest.xml
 	mkdir -p apkbuild/lib/arm64-v8a
 	cp $(lib_so) apkbuild/lib/arm64-v8a
+	mkdir -p apkbuild/assets
+	cp -r data apkbuild/assets
+	cp -r sdr apkbuild/assets
 	aapt package -f -v -F $@ -I $(PLATFORM_JAR) -M AndroidManifest.xml apkbuild
 
-$(lib_so): $(obj)
+$(lib_so): $(obj) Makefile.android
 	$(CC) -o $@ -shared $(obj) $(LDFLAGS)
 
 -include $(dep)
@@ -55,6 +59,15 @@ clean:
 .PHONY: cleandep
 cleandep:
 	rm -f $(dep)
+
+.PHONY: libs
+libs:
+	$(MAKE) CC=$(CC) sys=android-arm64 -C libs
+
+.PHONY: clean-libs
+clean-libs:
+	$(MAKE) sys=android-arm64 -C libs clean
+
 
 .PHONY: install
 install: $(name).apk
