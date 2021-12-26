@@ -1,5 +1,6 @@
 #include "demo.h"
 #include "opengl.h"
+#include "sanegl.h"
 #include "assman.h"
 
 static unsigned int sdr_foo;
@@ -28,6 +29,17 @@ void demo_display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	glUseProgram(sdr_foo);
+	gl_begin(GL_QUADS);
+	gl_texcoord2f(0, 1);
+	gl_vertex2f(-1, -1);
+	gl_texcoord2f(1, 1);
+	gl_vertex2f(1, -1);
+	gl_texcoord2f(1, 0);
+	gl_vertex2f(1, 1);
+	gl_texcoord2f(0, 0);
+	gl_vertex2f(-1, 1);
+	gl_end();
 }
 
 void demo_reshape(int x, int y)

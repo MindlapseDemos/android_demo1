@@ -1,7 +1,6 @@
 SDK ?= /usr/lib/android-sdk
 NDK ?= /usr/lib/android-ndk
 CCSYSROOT = --sysroot=$(NDK)/sysroot
-ISYS = --isystem=$(CCSYSROOT)/usr/include/aarch64-linux-android
 LDSYSROOT = --sysroot=$(NDK)/platforms/android-23/arch-arm64
 PLATFORM_JAR = $(SDK)/platforms/android-23/android.jar
 TCPATH = $(NDK)/toolchains/llvm/prebuilt/linux-$(shell uname -m)/bin
@@ -20,6 +19,7 @@ act = android.app.NativeActivity
 warn = -pedantic -Wall
 dbg = -g
 opt = -O3 -ffast-math -fno-strict-aliasing
+def = -DGLDEF
 incdir = -Isrc -Ilibs/imago/src
 libdir = -Llibs/android
 

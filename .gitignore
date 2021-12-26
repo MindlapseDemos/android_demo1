@@ -7,3 +7,4 @@ demo
 keystore.jks
 *.a
 data
+apkbuild

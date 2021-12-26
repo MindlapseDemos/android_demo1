@@ -1,10 +1,10 @@
-attribute vec4 apos;
-attribute vec2 atex;
+attribute vec4 attr_vertex;
+attribute vec2 attr_texcoord;
 
 varying vec2 texcoord;
 
 void main()
 {
-	gl_Position = apos;
-	texcoord = atex;
+	gl_Position = attr_vertex;
+	texcoord = attr_texcoord;
 }

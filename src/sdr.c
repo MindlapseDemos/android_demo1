@@ -13,6 +13,16 @@
 
 #include "sdr.h"
 
+#ifndef GL_GEOMETRY_SHADER
+#define GL_GEOMETRY_SHADER			0x8dd9
+#endif
+#ifndef GL_TESS_EVALUATION_SHADER
+#define GL_TESS_EVALUATION_SHADER	0x8e87
+#endif
+#ifndef GL_TESS_CONTROL_SHADER
+#define GL_TESS_CONTROL_SHADER		0x8e88
+#endif
+
 static const char *sdrtypestr(unsigned int sdrtype);
 static int sdrtypeidx(unsigned int sdrtype);
 
@@ -29,20 +39,12 @@ unsigned int create_pixel_shader(const char *src)
 
 unsigned int create_tessctl_shader(const char *src)
 {
-#ifdef GL_TESS_CONTROL_SHADER
 	return create_shader(src, GL_TESS_CONTROL_SHADER);
-#else
-	return 0;
-#endif
 }
 
 unsigned int create_tesseval_shader(const char *src)
 {
-#ifdef GL_TESS_EVALUATION_SHADER
 	return create_shader(src, GL_TESS_EVALUATION_SHADER);
-#else
-	return 0;
-#endif
 }
 
 unsigned int create_geometry_shader(const char *src)
@@ -121,20 +123,12 @@ unsigned int load_pixel_shader(const char *fname)
 
 unsigned int load_tessctl_shader(const char *fname)
 {
-#ifdef GL_TESS_CONTROL_SHADER
 	return load_shader(fname, GL_TESS_CONTROL_SHADER);
-#else
-	return 0;
-#endif
 }
 
 unsigned int load_tesseval_shader(const char *fname)
 {
-#ifdef GL_TESS_EVALUATION_SHADER
 	return load_shader(fname, GL_TESS_EVALUATION_SHADER);
-#else
-	return 0;
-#endif
 }
 
 unsigned int load_geometry_shader(const char *fname)
@@ -523,19 +517,12 @@ static const char *sdrtypestr(unsigned int sdrtype)
 		return "vertex";
 	case GL_FRAGMENT_SHADER:
 		return "pixel";
-#ifdef GL_TESS_CONTROL_SHADER
 	case GL_TESS_CONTROL_SHADER:
 		return "tessellation control";
-#endif
-#ifdef GL_TESS_EVALUATION_SHADER
 	case GL_TESS_EVALUATION_SHADER:
 		return "tessellation evaluation";
-#endif
-#ifdef GL_GEOMETRY_SHADER
 	case GL_GEOMETRY_SHADER:
 		return "geometry";
-#endif
-
 	default:
 		break;
 	}
