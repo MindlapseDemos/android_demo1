@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <string.h>
 #include "demosys.h"
 
 static struct demoscreen *act_tail;

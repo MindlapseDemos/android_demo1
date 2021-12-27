@@ -6,7 +6,7 @@ PLATFORM_JAR = $(SDK)/platforms/android-23/android.jar
 TCPATH = $(NDK)/toolchains/llvm/prebuilt/linux-$(shell uname -m)/bin
 TC = $(TCPATH)/aarch64-linux-android23-
 
-src = $(wildcard src/*.c) $(wildcard src/android/*.c)
+src = $(wildcard src/*.c) $(wildcard src/scr/*.c) $(wildcard src/android/*.c)
 obj = $(src:.c=.arm64.o)
 dep = $(src:.c=.d)
 name = andemo

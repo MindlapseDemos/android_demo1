@@ -1,4 +1,4 @@
-src = $(wildcard src/*.c) $(wildcard src/pc/*.c) libs/glew/glew.c
+src = $(wildcard src/*.c) $(wildcard src/scr/*.c) $(wildcard src/pc/*.c) libs/glew/glew.c
 obj = $(src:.c=.o)
 dep = $(src:.c=.d)
 bin = demo
