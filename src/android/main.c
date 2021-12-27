@@ -1,16 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include "demo.h"
 #include "android_native_app_glue.h"
 #include "logger.h"
+#include "demosys.h"
 
 static void handle_command(struct android_app *app, int32_t cmd);
 static int handle_input(struct android_app *app, AInputEvent *ev);
 static int handle_touch_input(struct android_app *app, AInputEvent *ev);
 static int init_gl(void);
 static void destroy_gl(void);
+static unsigned long get_time_msec(void);
 
 struct android_app *app;
 
@@ -20,6 +25,8 @@ static EGLContext ctx;
 static int init_done, paused;
 
 static int width, height;
+
+static long start_time;
 
 
 void android_main(struct android_app *app_ptr)
@@ -45,10 +52,16 @@ void android_main(struct android_app *app_ptr)
 			return;
 		}
 		if(init_done && !paused) {
+			time_msec = (long)get_time_msec() - start_time;
 			demo_display();
 			eglSwapBuffers(dpy, surf);
 		}
 	}
+}
+
+void swap_buffers(void)
+{
+	eglSwapBuffers(dpy, surf);
 }
 
 static void handle_command(struct android_app *app, int32_t cmd)
@@ -58,9 +71,11 @@ static void handle_command(struct android_app *app, int32_t cmd)
 	switch(cmd) {
 	case APP_CMD_PAUSE:
 		paused = 1;	/* TODO: handle timers */
+		dsys_stop();
 		break;
 	case APP_CMD_RESUME:
 		paused = 0;
+		dsys_run();
 		break;
 
 	case APP_CMD_INIT_WINDOW:
@@ -71,7 +86,9 @@ static void handle_command(struct android_app *app, int32_t cmd)
 			exit(1);
 		}
 		demo_reshape(width, height);
+		start_time = (long)get_time_msec();
 		init_done = 1;
+		dsys_run();
 		break;
 
 	case APP_CMD_TERM_WINDOW:
@@ -235,4 +252,17 @@ static void destroy_gl(void)
 
 	eglTerminate(dpy);
 	dpy = 0;
+}
+
+static unsigned long get_time_msec(void)
+{
+	struct timespec ts;
+	static struct timespec ts0;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	if(ts0.tv_sec == 0 && ts0.tv_nsec == 0) {
+		ts0 = ts;
+		return 0;
+	}
+	return (ts.tv_sec - ts0.tv_sec) * 1000 + (ts.tv_nsec - ts0.tv_nsec) / 1000000;
 }
