@@ -11,7 +11,7 @@ ifeq ($(sys), android-arm64)
 	lib = ../android/libanim.a
 endif
 
-CFLAGS = -O3 -ffast-math -fno-strict-aliasing -I..
+CFLAGS = -g -ffast-math -fno-strict-aliasing -I..
 
 $(lib): $(obj)
 

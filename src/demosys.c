@@ -206,7 +206,7 @@ int dsys_add_screen(struct demoscreen *scr)
 		return -1;
 	}
 	anm_set_track_interpolator(&scr->track, ANM_INTERP_LINEAR);
-	anm_set_track_extrapolator(&scr->track, ANM_EXTRAP_EXTEND);
+	anm_set_track_extrapolator(&scr->track, ANM_EXTRAP_CLAMP);
 	anm_set_track_default(&scr->track, 0);
 
 	dsys_screens[dsys_num_screens++] = scr;

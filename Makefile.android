@@ -23,6 +23,9 @@ def = -DGLDEF
 incdir = -Isrc -Ilibs -Ilibs/imago/src -Ilibs/treestore
 libdir = -Llibs/android
 
+libs = libs/android/libimago.a libs/android/libtreestore.a libs/android/libanim.a \
+	   libs/android/libpsys.a
+
 CC = $(TC)clang
 CFLAGS = $(CCSYSROOT) $(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
 LDFLAGS = $(LDSYSROOT) $(libdir) -lm -landroid -llog -lEGL -lGLESv2 -limago -lpsys -lanim -ltreestore
@@ -44,7 +47,7 @@ $(name).unsigned.apk: $(lib_so) AndroidManifest.xml
 	cp -r sdr apkbuild/assets
 	aapt package -f -F $@ -I $(PLATFORM_JAR) -M AndroidManifest.xml apkbuild
 
-$(lib_so): $(obj) Makefile.android
+$(lib_so): $(obj) Makefile.android $(libs)
 	$(CC) -o $@ -shared -Wl,-soname,$(lib_so) $(obj) $(LDFLAGS)
 
 -include $(dep)

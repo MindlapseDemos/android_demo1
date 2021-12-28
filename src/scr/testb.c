@@ -1,5 +1,6 @@
 #include "demo.h"
 #include "noise.h"
+#include "cgmath/cgmath.h"
 
 static int init(void);
 static void destroy(void);
@@ -7,9 +8,10 @@ static void draw(void);
 
 static unsigned int sdr_foo;
 
+static struct demoscreen scr = { "testb", init, destroy, 0, 0, 0, 0, draw };
+
 void regscr_testb(void)
 {
-	static struct demoscreen scr = { "testb", init, destroy, 0, 0, 0, 0, draw };
 	dsys_add_screen(&scr);
 }
 
@@ -40,7 +42,7 @@ static void draw(void)
 		y = (i + 0.5f) / (NY/2.0f) - 1.0f;
 		for(j=0; j<NX; j++) {
 			x = (j + 0.5f) / (NX/2.0f) - 1.0f;
-			sz = noise2(x * 5.0f, t) * noise2(y * 5.0f, t) * 2.5f;
+			sz = cgm_lerp(1.0f, noise2(x * 5.0f, t) * noise2(y * 5.0f, t) * 2.5f, scr.vis);
 			if(sz < 0.0f) sz = 0.0f;
 			if(sz > 1.0f) sz = 1.0f;
 			xr = sz / NX;
