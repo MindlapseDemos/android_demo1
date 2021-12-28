@@ -20,6 +20,7 @@ int demo_init(void)
 	if(!(tex_logo = get_tex2d("data/ml_logo_old.png"))) {
 		return -1;
 	}
+	glBindTexture(GL_TEXTURE_2D, tex_logo);
 	glUseProgram(sdr_foo);
 	gl_begin(GL_QUADS);
 	gl_texcoord2f(0, 1);
@@ -47,18 +48,10 @@ void demo_cleanup(void)
 
 void demo_display(void)
 {
-	struct demoscreen *scr;
+	dsys_update();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	scr = dsys_act_scr;
-	while(scr) {
-		if(scr->update) {
-			scr->update(dsys_time);
-		}
-		scr->draw();
-		scr = scr->next;
-	}
+	dsys_draw();
 }
 
 void demo_reshape(int x, int y)
@@ -102,12 +95,10 @@ void demo_keyboard(int key, int pressed)
 			}
 
 		} else {
-			struct demoscreen *scr = dsys_act_scr;
-			while(scr) {
-				if(scr->keyboard) {
-					scr->keyboard(key, pressed);
-				}
-				scr = scr->next;
+			int i;
+			for(i=0; i<dsys_num_act; i++) {
+				struct demoscreen *scr = dsys_act[i];
+				if(scr->keyboard) scr->keyboard(key, pressed);
 			}
 		}
 	}
@@ -115,22 +106,18 @@ void demo_keyboard(int key, int pressed)
 
 void demo_mouse(int bn, int pressed, int x, int y)
 {
-	struct demoscreen *scr = dsys_act_scr;
-	while(scr) {
-		if(scr->mouse) {
-			scr->mouse(bn, pressed, x, y);
-		}
-		scr = scr->next;
+	int i;
+	for(i=0; i<dsys_num_act; i++) {
+		struct demoscreen *scr = dsys_act[i];
+		if(scr->mouse) scr->mouse(bn, pressed, x, y);
 	}
 }
 
 void demo_motion(int x, int y)
 {
-	struct demoscreen *scr = dsys_act_scr;
-	while(scr) {
-		if(scr->motion) {
-			scr->motion(x, y);
-		}
-		scr = scr->next;
+	int i;
+	for(i=0; i<dsys_num_act; i++) {
+		struct demoscreen *scr = dsys_act[i];
+		if(scr->motion) scr->motion(x, y);
 	}
 }

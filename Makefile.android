@@ -20,12 +20,12 @@ warn = -pedantic -Wall
 dbg = -g
 opt = -O3 -ffast-math -fno-strict-aliasing
 def = -DGLDEF
-incdir = -Isrc -Ilibs -Ilibs/imago/src
+incdir = -Isrc -Ilibs -Ilibs/imago/src -Ilibs/treestore
 libdir = -Llibs/android
 
 CC = $(TC)clang
 CFLAGS = $(CCSYSROOT) $(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
-LDFLAGS = $(LDSYSROOT) $(libdir) -lm -landroid -llog -lEGL -lGLESv2 -limago -lpsys -lanim
+LDFLAGS = $(LDSYSROOT) $(libdir) -lm -landroid -llog -lEGL -lGLESv2 -limago -lpsys -lanim -ltreestore
 
 $(name).apk: $(name).aligned.apk keystore.jks
 	apksigner sign --ks keystore.jks --ks-key-alias androidkey --ks-pass pass:android --key-pass pass:android --out $@ $<

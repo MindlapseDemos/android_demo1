@@ -1,8 +1,8 @@
 .PHONY: all
-all: imago anim psys
+all: imago anim psys treestore
 
 .PHONY: clean
-clean: clean-imago clean-anim clean-psys
+clean: clean-imago clean-anim clean-psys clean-treestore
 
 
 .PHONY: imago
@@ -28,3 +28,11 @@ psys:
 .PHONY: clean-psys
 clean-psys:
 	$(MAKE) -C psys clean
+
+.PHONY: treestore
+treestore:
+	$(MAKE) -C treestore
+
+.PHONY: clean-treestore
+clean-treestore:
+	$(MAKE) -C treestore clean

@@ -87,6 +87,8 @@ unsigned int get_vsdr(const char *fname)
 	buf[sz] = 0;
 	ass_fclose(fp);
 
+	printf("vertex shader %s ", fname);
+	fflush(stdout);
 	sdr = create_vertex_shader(buf);
 	free(buf);
 
@@ -123,6 +125,8 @@ unsigned int get_psdr(const char *fname)
 	buf[sz] = 0;
 	ass_fclose(fp);
 
+	printf("pixel shader %s ", fname);
+	fflush(stdout);
 	sdr = create_pixel_shader(buf);
 	free(buf);
 

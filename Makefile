@@ -7,11 +7,11 @@ warn = -pedantic -Wall
 dbg = -g
 #opt = -O3 -ffast-math -fno-strict-aliasing
 def = -DMINIGLUT_USE_LIBC -DGLEW_STATIC
-incdir = -Isrc -Ilibs -Ilibs/imago/src -Ilibs/glew
+incdir = -Isrc -Ilibs -Ilibs/imago/src -Ilibs/treestore -Ilibs/glew
 libdir = -Llibs/unix
 
 CFLAGS = $(warn) $(dbg) $(opt) $(def) $(incdir) -fcommon -MMD
-LDFLAGS = $(libdir) $(libsys) $(libgl) -limago -lpsys -lanim $(libc)
+LDFLAGS = $(libdir) $(libsys) $(libgl) -limago -lpsys -lanim -ltreestore $(libc)
 
 sys ?= $(shell uname -s | sed 's/MINGW.*/mingw/')
 ifeq ($(sys), mingw)

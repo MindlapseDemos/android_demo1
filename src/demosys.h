@@ -6,8 +6,6 @@
 struct demoscreen {
 	char *name;
 
-	struct anm_track track;
-
 	int (*init)(void);
 	void (*destroy)(void);
 	void (*reshape)(int x, int y);
@@ -22,7 +20,9 @@ struct demoscreen {
 	void (*mouse)(int bn, int pressed, int x, int y);
 	void (*motion)(int x, int y);
 
-	struct demoscreen *next;
+	struct anm_track track;
+	int active, prio;
+	float vis;
 };
 
 /* global demo state */
@@ -33,21 +33,25 @@ long dsys_time;		/* demo time in milliseconds */
 #define MAX_DSYS_SCREENS	64
 struct demoscreen *dsys_screens[MAX_DSYS_SCREENS];
 int dsys_num_screens;
-struct demoscreen *dsys_act_scr;	/* linked list of active screens */
+struct demoscreen *dsys_act[MAX_DSYS_SCREENS];
+int dsys_num_act;
 
 
 int dsys_init(const char *fname);
 void dsys_destroy(void);
 
-/* overrides the demo sequence, and runs a single screen */
-struct demoscreen *dsys_find_screen(const char *name);
-void dsys_run_screen(struct demoscreen *scr);
+void dsys_update(void);
+void dsys_draw(void);
 
 void dsys_run(void);
 void dsys_stop(void);
 void dsys_seek_abs(long tm);
 void dsys_seek_rel(long dt);
 void dsys_seek_norm(float t);
+
+/* overrides the demo sequence, and runs a single screen */
+struct demoscreen *dsys_find_screen(const char *name);
+void dsys_run_screen(struct demoscreen *scr);
 
 int dsys_add_screen(struct demoscreen *scr);
 
