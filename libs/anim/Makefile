@@ -8,10 +8,16 @@ ifeq ($(sys), mingw)
 endif
 ifeq ($(sys), android-arm64)
 	obj = anim.arm64.o track.arm64.o dynarr.arm64.o
-	lib = ../android/libanim.a
+	lib = ../android64/libanim.a
+	pic = -fPIC
+endif
+ifeq ($(sys), android-arm32)
+	obj = anim.arm32.o track.arm32.o dynarr.arm32.o
+	lib = ../android32/libanim.a
+	pic = -fPIC
 endif
 
-CFLAGS = -g -ffast-math -fno-strict-aliasing -I..
+CFLAGS = -g -ffast-math -fno-strict-aliasing $(pic) -I..
 
 $(lib): $(obj)
 
@@ -19,6 +25,9 @@ $(lib): $(obj)
 	$(AR) rcs $@ $(obj)
 
 %.arm64.o: %.c
+	$(CC) -o $@ $(CFLAGS) -c $<
+
+%.arm32.o: %.c
 	$(CC) -o $@ $(CFLAGS) -c $<
 
 %.w32.o: %.c

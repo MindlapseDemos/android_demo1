@@ -12,15 +12,24 @@ ifeq ($(sys), mingw)
 endif
 ifeq ($(sys), android-arm64)
 	obj = $(src:.c=.arm64.o)
-	alib = ../android/libimago.a
+	alib = ../android64/libimago.a
+	pic = -fPIC
+endif
+ifeq ($(sys), android-arm32)
+	obj = $(src:.c=.arm32.o)
+	alib = ../android32/libimago.a
+	pic = -fPIC
 endif
 
-CFLAGS = -O3 -Izlib -Ilibpng -Ijpeglib
+CFLAGS = -O3 -Izlib -Ilibpng -Ijpeglib $(pic)
 
 $(alib): $(obj)
 	$(AR) rcs $@ $(obj)
 
 %.arm64.o: %.c
+	$(CC) -o $@ $(CFLAGS) -c $<
+
+%.arm32.o: %.c
 	$(CC) -o $@ $(CFLAGS) -c $<
 
 %.w32.o: %.c

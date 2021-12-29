@@ -8,15 +8,24 @@ ifeq ($(sys), mingw)
 endif
 ifeq ($(sys), android-arm64)
 	obj = treestore.arm64.o text.arm64.o dynarr.arm64.o
-	lib = ../android/libtreestore.a
+	lib = ../android64/libtreestore.a
+	pic = -fPIC
+endif
+ifeq ($(sys), android-arm32)
+	obj = treestore.arm32.o text.arm32.o dynarr.arm32.o
+	lib = ../android32/libtreestore.a
+	pic = -fPIC
 endif
 
-CFLAGS = -O3
+CFLAGS = -O3 $(pic)
 
 $(lib): $(obj)
 	$(AR) rcs $@ $(obj)
 
 %.arm64.o: %.c
+	$(CC) -o $@ $(CFLAGS) -c $<
+
+%.arm32.o: %.c
 	$(CC) -o $@ $(CFLAGS) -c $<
 
 %.w32.o: %.c

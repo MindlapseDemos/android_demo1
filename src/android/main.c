@@ -5,8 +5,9 @@
 #include <sys/time.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
-#include "demo.h"
+#include <android/window.h>
 #include "android_native_app_glue.h"
+#include "demo.h"
 #include "logger.h"
 #include "demosys.h"
 
@@ -82,6 +83,7 @@ static void handle_command(struct android_app *app, int32_t cmd)
 		break;
 
 	case APP_CMD_INIT_WINDOW:
+		ANativeActivity_setWindowFlags(app->activity, AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
 		if(init_gl() == -1) {
 			exit(1);
 		}
