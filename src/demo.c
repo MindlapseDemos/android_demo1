@@ -60,9 +60,9 @@ void demo_reshape(int x, int y)
 
 	glViewport(0, 0, x, y);
 
-	for(i=0; i<dsys_num_screens; i++) {
-		if(dsys_screens[i]->reshape) {
-			dsys_screens[i]->reshape(x, y);
+	for(i=0; i<dsys.num_screens; i++) {
+		if(dsys.screens[i]->reshape) {
+			dsys.screens[i]->reshape(x, y);
 		}
 	}
 }
@@ -73,7 +73,7 @@ void demo_keyboard(int key, int pressed)
 
 	switch(key) {
 	case ' ':
-		if(dsys_running) {
+		if(dsys.running) {
 			dsys_stop();
 		} else {
 			dsys_run();
@@ -90,14 +90,14 @@ void demo_keyboard(int key, int pressed)
 
 		} else if(key >= KEY_F1 && key <= KEY_F12) {
 			int idx = key - KEY_F1;
-			if(idx < dsys_num_screens) {
-				dsys_run_screen(dsys_screens[idx]);
+			if(idx < dsys.num_screens) {
+				dsys_run_screen(dsys.screens[idx]);
 			}
 
 		} else {
 			int i;
-			for(i=0; i<dsys_num_act; i++) {
-				struct demoscreen *scr = dsys_act[i];
+			for(i=0; i<dsys.num_act; i++) {
+				struct demoscreen *scr = dsys.act[i];
 				if(scr->keyboard) scr->keyboard(key, pressed);
 			}
 		}
@@ -107,8 +107,8 @@ void demo_keyboard(int key, int pressed)
 void demo_mouse(int bn, int pressed, int x, int y)
 {
 	int i;
-	for(i=0; i<dsys_num_act; i++) {
-		struct demoscreen *scr = dsys_act[i];
+	for(i=0; i<dsys.num_act; i++) {
+		struct demoscreen *scr = dsys.act[i];
 		if(scr->mouse) scr->mouse(bn, pressed, x, y);
 	}
 }
@@ -116,8 +116,8 @@ void demo_mouse(int bn, int pressed, int x, int y)
 void demo_motion(int x, int y)
 {
 	int i;
-	for(i=0; i<dsys_num_act; i++) {
-		struct demoscreen *scr = dsys_act[i];
+	for(i=0; i<dsys.num_act; i++) {
+		struct demoscreen *scr = dsys.act[i];
 		if(scr->motion) scr->motion(x, y);
 	}
 }

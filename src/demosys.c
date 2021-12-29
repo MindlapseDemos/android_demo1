@@ -4,11 +4,14 @@
 #include "demosys.h"
 #include "treestore.h"
 #include "assfile.h"
+#include "rbtree.h"
+#include "darray.h"
 
 void regscr_testa(void);
 void regscr_testb(void);
 
 static void proc_screen_script(struct demoscreen *scr, struct ts_node *node);
+static void proc_track(struct ts_node *node, const char *pname);
 static long io_read(void *buf, size_t bytes, void *uptr);
 
 
@@ -19,18 +22,25 @@ int dsys_init(const char *fname)
 	struct ts_node *ts, *tsnode;
 	struct demoscreen *scr;
 
+	memset(&dsys, 0, sizeof dsys);
+	if(!(dsys.trackmap = rb_create(RB_KEY_STRING))) {
+		return -1;
+	}
+	dsys.track = darr_alloc(0, sizeof *dsys.track);
+	dsys.value = darr_alloc(0, sizeof *dsys.value);
+
 	regscr_testa();
 	regscr_testb();
 
-	for(i=0; i<dsys_num_screens; i++) {
-		if(dsys_screens[i]->init() == -1) {
-			fprintf(stderr, "failed to initialize demo screen: %s\n", dsys_screens[i]->name);
+	for(i=0; i<dsys.num_screens; i++) {
+		if(dsys.screens[i]->init() == -1) {
+			fprintf(stderr, "failed to initialize demo screen: %s\n", dsys.screens[i]->name);
 			return -1;
 		}
 	}
 
 	if(!fname || !(io.data = ass_fopen(fname, "rb"))) {
-		dsys_run_screen(dsys_screens[0]);
+		dsys_run_screen(dsys.screens[0]);
 		return 0;
 	}
 	io.read = io_read;
@@ -46,6 +56,9 @@ int dsys_init(const char *fname)
 		if(strcmp(tsnode->name, "screen") == 0 &&
 				(scr = dsys_find_screen(ts_get_attr_str(tsnode, "name", 0)))) {
 			proc_screen_script(scr, tsnode);
+
+		} else if(strcmp(tsnode->name, "track") == 0) {
+			proc_track(tsnode, "");
 		}
 		tsnode = tsnode->next;
 	}
@@ -56,6 +69,7 @@ int dsys_init(const char *fname)
 
 static void proc_screen_script(struct demoscreen *scr, struct ts_node *node)
 {
+	struct ts_node *sub;
 	struct ts_attr *attr;
 	long tm;
 
@@ -66,6 +80,19 @@ static void proc_screen_script(struct demoscreen *scr, struct ts_node *node)
 		}
 		attr = attr->next;
 	}
+
+	sub = node->child_list;
+	while(sub) {
+		if(strcmp(sub->name, "track") == 0) {
+			proc_track(sub, node->name);
+		}
+		sub = sub->next;
+	}
+}
+
+static void proc_track(struct ts_node *node, const char *pname)
+{
+	char *name, *fullname;
 }
 
 static long io_read(void *buf, size_t bytes, void *uptr)
@@ -78,13 +105,17 @@ void dsys_destroy(void)
 {
 	int i;
 
-	for(i=0; i<dsys_num_screens; i++) {
-		anm_destroy_track(&dsys_screens[i]->track);
-		if(dsys_screens[i]->destroy) {
-			dsys_screens[i]->destroy();
+	for(i=0; i<dsys.num_screens; i++) {
+		anm_destroy_track(&dsys.screens[i]->track);
+		if(dsys.screens[i]->destroy) {
+			dsys.screens[i]->destroy();
 		}
 	}
-	dsys_num_screens = 0;
+	dsys.num_screens = 0;
+
+	darr_free(dsys.track);
+	darr_free(dsys.value);
+	rb_free(dsys.trackmap);
 }
 
 void dsys_update(void)
@@ -92,24 +123,24 @@ void dsys_update(void)
 	int i, j, sort_needed = 0;
 	struct demoscreen *scr;
 
-	dsys_time = time_msec;
+	dsys.tmsec = time_msec;
 
-	dsys_num_act = 0;
-	for(i=0; i<dsys_num_screens; i++) {
-		scr = dsys_screens[i];
-		scr->vis = anm_get_value(&scr->track, dsys_time);
+	dsys.num_act = 0;
+	for(i=0; i<dsys.num_screens; i++) {
+		scr = dsys.screens[i];
+		scr->vis = anm_get_value(&scr->track, dsys.tmsec);
 
 		if(scr->vis > 0.0f) {
 			if(!scr->active) {
 				if(scr->start) scr->start();
 				scr->active = 1;
 			}
-			if(scr->update) scr->update(dsys_time);
+			if(scr->update) scr->update(dsys.tmsec);
 
-			if(dsys_num_act && scr->prio != dsys_act[dsys_num_act - 1]->prio) {
+			if(dsys.num_act && scr->prio != dsys.act[dsys.num_act - 1]->prio) {
 				sort_needed = 1;
 			}
-			dsys_act[dsys_num_act++] = scr;
+			dsys.act[dsys.num_act++] = scr;
 		} else {
 			if(scr->active) {
 				if(scr->stop) scr->stop();
@@ -119,15 +150,20 @@ void dsys_update(void)
 	}
 
 	if(sort_needed) {
-		for(i=0; i<dsys_num_act; i++) {
-			for(j=i+1; j<dsys_num_act; j++) {
-				if(dsys_act[j]->prio > dsys_act[j - 1]->prio) {
-					void *tmp = dsys_act[j];
-					dsys_act[j] = dsys_act[j - 1];
-					dsys_act[j - 1] = tmp;
+		for(i=0; i<dsys.num_act; i++) {
+			for(j=i+1; j<dsys.num_act; j++) {
+				if(dsys.act[j]->prio > dsys.act[j - 1]->prio) {
+					void *tmp = dsys.act[j];
+					dsys.act[j] = dsys.act[j - 1];
+					dsys.act[j - 1] = tmp;
 				}
 			}
 		}
+	}
+
+	/* evaluate tracks */
+	for(i=0; i<dsys.num_tracks; i++) {
+		dsys.value[i] = anm_get_value(dsys.track + i, dsys.tmsec);
 	}
 }
 
@@ -135,8 +171,8 @@ void dsys_update(void)
 void dsys_draw(void)
 {
 	int i;
-	for(i=0; i<dsys_num_act; i++) {
-		dsys_act[i]->draw();
+	for(i=0; i<dsys.num_act; i++) {
+		dsys.act[i]->draw();
 	}
 }
 
@@ -167,9 +203,9 @@ struct demoscreen *dsys_find_screen(const char *name)
 
 	if(!name) return 0;
 
-	for(i=0; i<dsys_num_screens; i++) {
-		if(strcmp(dsys_screens[i]->name, name) == 0) {
-			return dsys_screens[i];
+	for(i=0; i<dsys.num_screens; i++) {
+		if(strcmp(dsys.screens[i]->name, name) == 0) {
+			return dsys.screens[i];
 		}
 	}
 	return 0;
@@ -180,15 +216,15 @@ void dsys_run_screen(struct demoscreen *scr)
 	int i;
 
 	if(!scr) return;
-	if(dsys_num_act == 1 && dsys_act[0] == scr) return;
+	if(dsys.num_act == 1 && dsys.act[0] == scr) return;
 
-	for(i=0; i<dsys_num_act; i++) {
-		if(dsys_act[i]->stop) dsys_act[i]->stop();
-		dsys_act[i]->active = 0;
+	for(i=0; i<dsys.num_act; i++) {
+		if(dsys.act[i]->stop) dsys.act[i]->stop();
+		dsys.act[i]->active = 0;
 	}
 
-	dsys_act[0] = scr;
-	dsys_num_act = 1;
+	dsys.act[0] = scr;
+	dsys.num_act = 1;
 
 	if(scr->start) scr->start();
 	scr->active = 1;
@@ -209,6 +245,41 @@ int dsys_add_screen(struct demoscreen *scr)
 	anm_set_track_extrapolator(&scr->track, ANM_EXTRAP_CLAMP);
 	anm_set_track_default(&scr->track, 0);
 
-	dsys_screens[dsys_num_screens++] = scr;
+	dsys.screens[dsys.num_screens++] = scr;
 	return 0;
+}
+
+int dsys_add_track(const char *name)
+{
+	struct anm_track trk;
+	int idx;
+
+	if(rb_find(dsys.trackmap, (char*)name)) {
+		fprintf(stderr, "ignoring duplicate track: %s\n", name);
+		return -1;
+	}
+
+	idx = darr_size(dsys.track);
+	darr_push(dsys.track, &trk);
+	darr_pushf(dsys.value, 0);
+
+	if(rb_insert(dsys.trackmap, (char*)name, (void*)(intptr_t)idx) == -1) {
+		fprintf(stderr, "failed to insert to track map: %s\n", name);
+		abort();
+	}
+	return 0;
+}
+
+int dsys_find_track(const char *name)
+{
+	struct rbnode *n = rb_find(dsys.trackmap, (char*)name);
+	if(!n) return -1;
+
+	return (intptr_t)n->data;
+}
+
+float dsys_value(const char *name)
+{
+	int idx = dsys_find_track(name);
+	return idx == -1 ? 0.0f : dsys.value[idx];
 }

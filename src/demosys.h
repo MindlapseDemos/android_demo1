@@ -25,16 +25,24 @@ struct demoscreen {
 	float vis;
 };
 
-/* global demo state */
-int dsys_running;	/* run/stop state */
-int dsys_eof;		/* end of demo flag, seek back to reset */
-long dsys_time;		/* demo time in milliseconds */
-
 #define MAX_DSYS_SCREENS	64
-struct demoscreen *dsys_screens[MAX_DSYS_SCREENS];
-int dsys_num_screens;
-struct demoscreen *dsys_act[MAX_DSYS_SCREENS];
-int dsys_num_act;
+struct demosystem {
+	int running;			/* run/stop state */
+	int eof;				/* end of demo flag, seek back to reset */
+	long tmsec;
+
+	struct demoscreen *screens[MAX_DSYS_SCREENS];
+	int num_screens;
+	struct demoscreen *act[MAX_DSYS_SCREENS];
+	int num_act;
+
+	void *trackmap;
+	struct anm_track *track;
+	float *value;				/* values for each track, stored on update */
+	int num_tracks;
+};
+
+struct demosystem dsys;
 
 
 int dsys_init(const char *fname);
@@ -54,5 +62,11 @@ struct demoscreen *dsys_find_screen(const char *name);
 void dsys_run_screen(struct demoscreen *scr);
 
 int dsys_add_screen(struct demoscreen *scr);
+
+/* demo event tracks */
+int dsys_add_track(const char *name);
+int dsys_find_track(const char *name);
+
+float dsys_value(const char *name);
 
 #endif	/* DEMOSYS_H_ */

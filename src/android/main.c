@@ -42,6 +42,8 @@ void android_main(struct android_app *app_ptr)
 
 	start_logger();
 
+	printf("Running %d bit version\n", (int)sizeof(void*) << 3);
+
 	for(;;) {
 		int num_events;
 		struct android_poll_source *pollsrc;

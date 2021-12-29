@@ -34,7 +34,7 @@ static void draw(void)
 {
 	int i, j;
 	float x, y, xr, yr, sz;
-	float t = dsys_time / 700.0f;
+	float t = dsys.tmsec / 700.0f;
 
 	glUseProgram(sdr_foo);
 	gl_begin(GL_QUADS);

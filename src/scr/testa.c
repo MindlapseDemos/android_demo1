@@ -30,7 +30,7 @@ static void destroy(void)
 static void draw(void)
 {
 	int i;
-	float t = dsys_time / 1000.0f;
+	float t = dsys.tmsec / 1000.0f;
 	float gap = cgm_lerp(0, 0.01, scr.vis);
 
 	glUseProgram(sdr_foo);
