@@ -1,10 +1,11 @@
 SDK ?= /usr/lib/android-sdk
 NDK ?= /usr/lib/android-ndk
+AVER ?= 23
 CCSYSROOT = --sysroot=$(NDK)/sysroot
-LDSYSROOT = --sysroot=$(NDK)/platforms/android-23/arch-arm64
-PLATFORM_JAR = $(SDK)/platforms/android-23/android.jar
+LDSYSROOT = --sysroot=$(NDK)/platforms/android-$(AVER)/arch-arm64
+PLATFORM_JAR = $(SDK)/platforms/android-$(AVER)/android.jar
 TCPATH = $(NDK)/toolchains/llvm/prebuilt/linux-$(shell uname -m)/bin
-TC = $(TCPATH)/aarch64-linux-android23-
+TC = $(TCPATH)/aarch64-linux-android$(AVER)-
 
 src = $(wildcard src/*.c) $(wildcard src/scr/*.c) $(wildcard src/android/*.c)
 obj = $(src:.c=.arm64.o)
@@ -39,13 +40,18 @@ keystore.jks:
 $(name).aligned.apk: $(name).unsigned.apk
 	zipalign -f -p 4 $< $@
 
-$(name).unsigned.apk: $(lib_so) AndroidManifest.xml
+$(name).unsigned.apk: $(lib_so) AndroidManifest.xml $(icons)
 	mkdir -p apkbuild/lib/arm64-v8a
 	cp $(lib_so) apkbuild/lib/arm64-v8a
-	mkdir -p apkbuild/assets
-	cp -r data apkbuild/assets
+	mkdir -p apkbuild/assets/data
+	cp -r data/* apkbuild/assets/data
 	cp -r sdr apkbuild/assets
-	aapt package -f -F $@ -I $(PLATFORM_JAR) -M AndroidManifest.xml apkbuild
+	mkdir -p apkbuild/res/drawable-xhdpi apkbuild/res/drawable-hdpi apkbuild/res/drawable-mdpi apkbuild/res/drawable-ldpi
+	cp data/icon96.png apkbuild/res/drawable-xhdpi/ic_launcher.png
+	cp data/icon72.png apkbuild/res/drawable-hdpi/ic_launcher.png
+	cp data/icon48.png apkbuild/res/drawable-mdpi/ic_launcher.png
+	cp data/icon36.png apkbuild/res/drawable-ldpi/ic_launcher.png
+	aapt package -f -F $@ -I $(PLATFORM_JAR) -M AndroidManifest.xml -S apkbuild/res apkbuild
 
 $(lib_so): $(obj) Makefile.android $(libs)
 	$(CC) -o $@ -shared -Wl,-soname,$(lib_so) $(obj) $(LDFLAGS)

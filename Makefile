@@ -66,6 +66,10 @@ android-clean:
 android-libs:
 	$(MAKE) -f Makefile.android libs
 
+.PHONY: install
+install:
+	$(MAKE) -f Makefile.android install
+
 .PHONY: run
 run:
 	$(MAKE) -f Makefile.android install run

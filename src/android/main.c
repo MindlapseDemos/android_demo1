@@ -16,6 +16,7 @@ static int handle_touch_input(struct android_app *app, AInputEvent *ev);
 static int init_gl(void);
 static void destroy_gl(void);
 static unsigned long get_time_msec(void);
+static void hide_navbar(struct android_app *state);
 
 struct android_app *app;
 
@@ -35,6 +36,8 @@ void android_main(struct android_app *app_ptr)
 
 	app->onAppCmd = handle_command;
 	app->onInputEvent = handle_input;
+
+	hide_navbar(app);
 
 	start_logger();
 
@@ -265,4 +268,40 @@ static unsigned long get_time_msec(void)
 		return 0;
 	}
 	return (ts.tv_sec - ts0.tv_sec) * 1000 + (ts.tv_nsec - ts0.tv_nsec) / 1000000;
+}
+
+static void hide_navbar(struct android_app *state)
+{
+	JNIEnv *env;
+	jclass cactivity, cwin, cview;
+	jobject win, view;
+	jmethodID get_window, get_decor_view, set_system_ui_visibility;
+	jfieldID field_flag_fs, field_flag_hidenav, field_flag_immersive;
+	int flag_fs, flag_hidenav, flag_immersive;
+
+	(*state->activity->vm)->AttachCurrentThread(state->activity->vm, &env, 0);
+
+	cactivity = (*env)->FindClass(env, "android/app/NativeActivity");
+	get_window = (*env)->GetMethodID(env, cactivity, "getWindow", "()Landroid/view/Window;");
+
+	cwin = (*env)->FindClass(env, "android/view/Window");
+	get_decor_view = (*env)->GetMethodID(env, cwin, "getDecorView", "()Landroid/view/View;");
+
+	cview = (*env)->FindClass(env, "android/view/View");
+	set_system_ui_visibility = (*env)->GetMethodID(env, cview, "setSystemUiVisibility", "(I)V");
+
+	win = (*env)->CallObjectMethod(env, state->activity->clazz, get_window);
+	view = (*env)->CallObjectMethod(env, win, get_decor_view);
+
+	field_flag_fs = (*env)->GetStaticFieldID(env, cview, "SYSTEM_UI_FLAG_FULLSCREEN", "I");
+	field_flag_hidenav = (*env)->GetStaticFieldID(env, cview, "SYSTEM_UI_FLAG_HIDE_NAVIGATION", "I");
+	field_flag_immersive = (*env)->GetStaticFieldID(env, cview, "SYSTEM_UI_FLAG_IMMERSIVE_STICKY", "I");
+
+	flag_fs = (*env)->GetStaticIntField(env, cview, field_flag_fs);
+	flag_hidenav = (*env)->GetStaticIntField(env, cview, field_flag_hidenav);
+	flag_immersive = (*env)->GetStaticIntField(env, cview, field_flag_immersive);
+
+	(*env)->CallVoidMethod(env, view, set_system_ui_visibility, flag_fs | flag_hidenav | flag_immersive);
+
+	(*state->activity->vm)->DetachCurrentThread(state->activity->vm);
 }
