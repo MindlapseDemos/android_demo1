@@ -35,6 +35,7 @@ static void draw(void)
 	int i, j;
 	float x, y, xr, yr, sz;
 	float t = dsys.tmsec / 700.0f;
+	float foo = dsys_value("testb.hueflash");
 
 	glUseProgram(sdr_foo);
 	gl_begin(GL_QUADS);
@@ -48,6 +49,7 @@ static void draw(void)
 			xr = sz / NX;
 			yr = sz / NY;
 
+			gl_color3f(1, cgm_lerp(1, 0.7, foo), cgm_lerp(1, 0.3, foo));
 			gl_vertex2f(x - xr, y - yr);
 			gl_vertex2f(x + xr, y - yr);
 			gl_vertex2f(x + xr, y + yr);

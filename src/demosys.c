@@ -11,9 +11,8 @@ void regscr_testa(void);
 void regscr_testb(void);
 
 static void proc_screen_script(struct demoscreen *scr, struct ts_node *node);
-static void proc_track(struct ts_node *node, const char *pname);
+static void proc_track(struct ts_node *node, struct demoscreen *pscr);
 static long io_read(void *buf, size_t bytes, void *uptr);
-static void del_rbnode(struct rbnode *node, void *cls);
 
 
 int dsys_init(const char *fname)
@@ -27,10 +26,8 @@ int dsys_init(const char *fname)
 	if(!(dsys.trackmap = rb_create(RB_KEY_STRING))) {
 		return -1;
 	}
-	rb_set_delete_func(dsys.trackmap, del_rbnode, 0);
 
-	dsys.track = darr_alloc(0, sizeof *dsys.track);
-	dsys.value = darr_alloc(0, sizeof *dsys.value);
+	dsys.ev = darr_alloc(0, sizeof *dsys.ev);
 
 	regscr_testa();
 	regscr_testb();
@@ -87,38 +84,39 @@ static void proc_screen_script(struct demoscreen *scr, struct ts_node *node)
 	sub = node->child_list;
 	while(sub) {
 		if(strcmp(sub->name, "track") == 0) {
-			proc_track(sub, scr->name);
+			proc_track(sub, scr);
 		}
 		sub = sub->next;
 	}
 }
 
-static void proc_track(struct ts_node *node, const char *pname)
+static void proc_track(struct ts_node *node, struct demoscreen *pscr)
 {
 	char *name, *buf;
 	struct ts_attr *attr;
 	long tm;
-	int tidx;
-	struct anm_track *trk;
+	int idx;
+	struct demoevent *ev;
 
 	if(!(name = (char*)ts_get_attr_str(node, "name", 0))) {
 		return;
 	}
-	if(pname) {
-		buf = alloca(strlen(name) + strlen(pname) + 2);
-		sprintf(buf, "%s.%s", pname, name);
+	if(pscr) {
+		buf = alloca(strlen(name) + strlen(pscr->name) + 2);
+		sprintf(buf, "%s.%s", pscr->name, name);
 		name = buf;
 	}
 
-	if((tidx = dsys_add_track(name)) == -1) {
+	if((idx = dsys_add_event(name)) == -1) {
 		return;
 	}
-	trk = dsys.track + tidx;
+	ev = dsys.ev + idx;
+	ev->scr = pscr;
 
 	attr = node->attr_list;
 	while(attr) {
 		if(sscanf(attr->name, "key_%ld", &tm) == 1 && attr->val.type == TS_NUMBER) {
-			anm_set_value(trk, tm, attr->val.fnum);
+			anm_set_value(&ev->track, tm, attr->val.fnum);
 		}
 		attr = attr->next;
 	}
@@ -142,21 +140,25 @@ void dsys_destroy(void)
 	}
 	dsys.num_screens = 0;
 
-	darr_free(dsys.track);
-	darr_free(dsys.value);
+	darr_free(dsys.ev);
 	rb_free(dsys.trackmap);
 }
 
 void dsys_update(void)
 {
 	int i, j, sort_needed = 0;
+	long tm;
 	struct demoscreen *scr;
 
 	dsys.tmsec = time_msec;
 
 	/* evaluate tracks */
-	for(i=0; i<dsys.num_tracks; i++) {
-		dsys.value[i] = anm_get_value(dsys.track + i, dsys.tmsec);
+	for(i=0; i<dsys.num_ev; i++) {
+		tm = dsys.tmsec;
+		if((scr = dsys.ev[i].scr) && scr->start_time >= 0) {
+			tm -= dsys.ev[i].scr->start_time;
+		}
+		dsys.ev[i].value = anm_get_value(&dsys.ev[i].track, tm);
 	}
 
 	if(dsys.scr_override) {
@@ -172,9 +174,9 @@ void dsys_update(void)
 		scr->vis = anm_get_value(&scr->track, dsys.tmsec);
 
 		if(scr->vis > 0.0f) {
-			if(!scr->active) {
+			if(scr->start_time < 0) {
 				if(scr->start) scr->start();
-				scr->active = 1;
+				scr->start_time = dsys.tmsec;
 			}
 			if(scr->update) scr->update(dsys.tmsec);
 
@@ -183,9 +185,9 @@ void dsys_update(void)
 			}
 			dsys.act[dsys.num_act++] = scr;
 		} else {
-			if(scr->active) {
+			if(scr->start_time >= 0) {
 				if(scr->stop) scr->stop();
-				scr->active = 0;
+				scr->start_time = -1;
 			}
 		}
 	}
@@ -268,14 +270,14 @@ void dsys_run_screen(struct demoscreen *scr)
 
 	for(i=0; i<dsys.num_act; i++) {
 		if(dsys.act[i]->stop) dsys.act[i]->stop();
-		dsys.act[i]->active = 0;
+		dsys.act[i]->start_time = -1;
 	}
 	dsys.num_act = 0;
 
 	dsys.scr_override = scr;
 
 	if(scr->start) scr->start();
-	scr->active = 1;
+	scr->start_time = dsys.tmsec;
 }
 
 
@@ -297,9 +299,9 @@ int dsys_add_screen(struct demoscreen *scr)
 	return 0;
 }
 
-int dsys_add_track(const char *name)
+int dsys_add_event(const char *name)
 {
-	struct anm_track trk;
+	struct demoevent ev = {0};
 	int idx;
 
 	if(rb_find(dsys.trackmap, (char*)name)) {
@@ -307,21 +309,25 @@ int dsys_add_track(const char *name)
 		return -1;
 	}
 
-	idx = darr_size(dsys.track);
-	darr_push(dsys.track, &trk);
-	darr_pushf(dsys.value, 0);
+	ev.name = strdup_nf(name);
+	anm_init_track(&ev.track);
+	anm_set_track_interpolator(&ev.track, ANM_INTERP_LINEAR);
+	anm_set_track_extrapolator(&ev.track, ANM_EXTRAP_CLAMP);
+	anm_set_track_default(&ev.track, 0);
 
-	anm_init_track(dsys.track + idx);
+	idx = darr_size(dsys.ev);
+	darr_push(dsys.ev, &ev);
 
-	if(rb_insert(dsys.trackmap, (char*)strdup_nf(name), (void*)(intptr_t)idx) == -1) {
+
+	if(rb_insert(dsys.trackmap, ev.name, (void*)(intptr_t)idx) == -1) {
 		fprintf(stderr, "failed to insert to track map: %s\n", name);
 		abort();
 	}
-	dsys.num_tracks = idx + 1;
+	dsys.num_ev = idx + 1;
 	return idx;
 }
 
-int dsys_find_track(const char *name)
+int dsys_find_event(const char *name)
 {
 	struct rbnode *n = rb_find(dsys.trackmap, (char*)name);
 	if(!n) return -1;
@@ -331,11 +337,6 @@ int dsys_find_track(const char *name)
 
 float dsys_value(const char *name)
 {
-	int idx = dsys_find_track(name);
-	return idx == -1 ? 0.0f : dsys.value[idx];
-}
-
-static void del_rbnode(struct rbnode *node, void *cls)
-{
-	free(node->key);
+	int idx = dsys_find_event(name);
+	return idx == -1 ? 0.0f : dsys.ev[idx].value;
 }

@@ -21,8 +21,16 @@ struct demoscreen {
 	void (*motion)(int x, int y);
 
 	struct anm_track track;
-	int active, prio;
+	long start_time;
+	int prio;
 	float vis;
+};
+
+struct demoevent {
+	char *name;
+	struct anm_track track;
+	float value;
+	struct demoscreen *scr;
 };
 
 #define MAX_DSYS_SCREENS	64
@@ -39,9 +47,8 @@ struct demosystem {
 	struct demoscreen *scr_override;
 
 	void *trackmap;
-	struct anm_track *track;
-	float *value;				/* values for each track, stored on update */
-	int num_tracks;
+	struct demoevent *ev;
+	int num_ev;
 };
 
 struct demosystem dsys;
@@ -66,8 +73,8 @@ void dsys_run_screen(struct demoscreen *scr);
 int dsys_add_screen(struct demoscreen *scr);
 
 /* demo event tracks */
-int dsys_add_track(const char *name);
-int dsys_find_track(const char *name);
+int dsys_add_event(const char *name);
+int dsys_find_event(const char *name);
 float dsys_value(const char *name);
 
 #endif	/* DEMOSYS_H_ */
