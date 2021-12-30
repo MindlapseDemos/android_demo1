@@ -36,6 +36,8 @@ struct demosystem {
 	struct demoscreen *act[MAX_DSYS_SCREENS];
 	int num_act;
 
+	struct demoscreen *scr_override;
+
 	void *trackmap;
 	struct anm_track *track;
 	float *value;				/* values for each track, stored on update */

@@ -154,6 +154,18 @@ void dsys_update(void)
 
 	dsys.tmsec = time_msec;
 
+	/* evaluate tracks */
+	for(i=0; i<dsys.num_tracks; i++) {
+		dsys.value[i] = anm_get_value(dsys.track + i, dsys.tmsec);
+	}
+
+	if(dsys.scr_override) {
+		scr = dsys.scr_override;
+		scr->vis = 1;
+		if(scr->update) scr->update(dsys.tmsec);
+		return;
+	}
+
 	dsys.num_act = 0;
 	for(i=0; i<dsys.num_screens; i++) {
 		scr = dsys.screens[i];
@@ -189,17 +201,18 @@ void dsys_update(void)
 			}
 		}
 	}
-
-	/* evaluate tracks */
-	for(i=0; i<dsys.num_tracks; i++) {
-		dsys.value[i] = anm_get_value(dsys.track + i, dsys.tmsec);
-	}
 }
 
 /* TODO: do something about draw ordering of the active screens */
 void dsys_draw(void)
 {
 	int i;
+
+	if(dsys.scr_override) {
+		dsys.scr_override->draw();
+		return;
+	}
+
 	for(i=0; i<dsys.num_act; i++) {
 		dsys.act[i]->draw();
 	}
@@ -244,16 +257,22 @@ void dsys_run_screen(struct demoscreen *scr)
 {
 	int i;
 
-	if(!scr) return;
-	if(dsys.num_act == 1 && dsys.act[0] == scr) return;
+	if(!scr) {
+		if(dsys.scr_override) {
+			scr = dsys.scr_override;
+			if(scr->stop) scr->stop();
+		}
+		dsys.scr_override = 0;
+		return;
+	}
 
 	for(i=0; i<dsys.num_act; i++) {
 		if(dsys.act[i]->stop) dsys.act[i]->stop();
 		dsys.act[i]->active = 0;
 	}
+	dsys.num_act = 0;
 
-	dsys.act[0] = scr;
-	dsys.num_act = 1;
+	dsys.scr_override = scr;
 
 	if(scr->start) scr->start();
 	scr->active = 1;

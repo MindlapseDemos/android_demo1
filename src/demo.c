@@ -123,6 +123,12 @@ void demo_keyboard(int key, int pressed)
 
 		} else {
 			int i;
+
+			if(dsys.scr_override && dsys.scr_override->keyboard) {
+				dsys.scr_override->keyboard(key, pressed);
+				break;
+			}
+
 			for(i=0; i<dsys.num_act; i++) {
 				struct demoscreen *scr = dsys.act[i];
 				if(scr->keyboard) scr->keyboard(key, pressed);
@@ -134,6 +140,12 @@ void demo_keyboard(int key, int pressed)
 void demo_mouse(int bn, int pressed, int x, int y)
 {
 	int i;
+
+	if(dsys.scr_override && dsys.scr_override->mouse) {
+		dsys.scr_override->mouse(bn, pressed, x, y);
+		return;
+	}
+
 	for(i=0; i<dsys.num_act; i++) {
 		struct demoscreen *scr = dsys.act[i];
 		if(scr->mouse) scr->mouse(bn, pressed, x, y);
@@ -143,6 +155,11 @@ void demo_mouse(int bn, int pressed, int x, int y)
 void demo_motion(int x, int y)
 {
 	int i;
+
+	if(dsys.scr_override && dsys.scr_override->motion) {
+		dsys.scr_override->motion(x, y);
+	}
+
 	for(i=0; i<dsys.num_act; i++) {
 		struct demoscreen *scr = dsys.act[i];
 		if(scr->motion) scr->motion(x, y);
