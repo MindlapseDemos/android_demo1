@@ -128,6 +128,12 @@ int rb_size(struct rbtree *rb)
 
 int rb_insert(struct rbtree *rb, void *key, void *data)
 {
+#ifndef NDEBUG
+	int stack_var;
+	if(abs((uintptr_t)&stack_var - (uintptr_t)key) < 0x80000) {
+		fprintf(stderr, "rb_insert warning: key seems to point to the stack\n");
+	}
+#endif
 	rb->root = insert(rb, rb->root, key, data);
 	rb->root->red = 0;
 	return 0;

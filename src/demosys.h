@@ -66,7 +66,6 @@ int dsys_add_screen(struct demoscreen *scr);
 /* demo event tracks */
 int dsys_add_track(const char *name);
 int dsys_find_track(const char *name);
-
 float dsys_value(const char *name);
 
 #endif	/* DEMOSYS_H_ */

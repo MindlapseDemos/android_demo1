@@ -38,6 +38,9 @@ $(bin): $(obj) Makefile $(libs)
 %.w32.o: %.c
 	$(CC) -o $@ $(CFLAGS) -c $<
 
+$(libs_path)/%.a:
+	$(MAKE) -C libs
+
 .PHONY: clean
 clean:
 	rm -f $(obj) $(bin)

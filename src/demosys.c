@@ -13,6 +13,7 @@ void regscr_testb(void);
 static void proc_screen_script(struct demoscreen *scr, struct ts_node *node);
 static void proc_track(struct ts_node *node, const char *pname);
 static long io_read(void *buf, size_t bytes, void *uptr);
+static void del_rbnode(struct rbnode *node, void *cls);
 
 
 int dsys_init(const char *fname)
@@ -26,6 +27,8 @@ int dsys_init(const char *fname)
 	if(!(dsys.trackmap = rb_create(RB_KEY_STRING))) {
 		return -1;
 	}
+	rb_set_delete_func(dsys.trackmap, del_rbnode, 0);
+
 	dsys.track = darr_alloc(0, sizeof *dsys.track);
 	dsys.value = darr_alloc(0, sizeof *dsys.value);
 
@@ -291,7 +294,7 @@ int dsys_add_track(const char *name)
 
 	anm_init_track(dsys.track + idx);
 
-	if(rb_insert(dsys.trackmap, (char*)name, (void*)(intptr_t)idx) == -1) {
+	if(rb_insert(dsys.trackmap, (char*)strdup_nf(name), (void*)(intptr_t)idx) == -1) {
 		fprintf(stderr, "failed to insert to track map: %s\n", name);
 		abort();
 	}
@@ -311,4 +314,9 @@ float dsys_value(const char *name)
 {
 	int idx = dsys_find_track(name);
 	return idx == -1 ? 0.0f : dsys.value[idx];
+}
+
+static void del_rbnode(struct rbnode *node, void *cls)
+{
+	free(node->key);
 }
