@@ -6,6 +6,7 @@
 #include "demosys.h"
 #include "assman.h"
 #include "util.h"
+#include "cfgopt.h"
 
 enum {
 	KEY_F1 = 128,

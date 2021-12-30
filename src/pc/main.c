@@ -4,6 +4,7 @@
 #include "opengl.h"
 #include "miniglut.h"
 #include "demo.h"
+#include "cfgopt.h"
 
 static void display(void);
 static void keypress(unsigned char key, int x, int y);
@@ -11,12 +12,19 @@ static void skeypress(int key, int x, int y);
 static void mouse(int bn, int st, int x, int y);
 static int translate_key(int key);
 
+static int prev_xsz, prev_ysz;
 static long start_time;
 
 
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
+
+	load_config("demo.cfg");
+	if(parse_args(argc, argv) == -1) {
+		return 1;
+	}
+
 	glutInitWindowSize(1280, 800);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 	glutCreateWindow("Mindlapse");
@@ -28,6 +36,12 @@ int main(int argc, char **argv)
 	glutSpecialFunc(skeypress);
 	glutMouseFunc(mouse);
 	glutMotionFunc(demo_motion);
+
+	if(opt.fullscreen) {
+		prev_xsz = glutGet(GLUT_WINDOW_WIDTH);
+		prev_ysz = glutGet(GLUT_WINDOW_HEIGHT);
+		glutFullScreen();
+	}
 
 	if(demo_init() == -1) {
 		return 1;
@@ -56,9 +70,26 @@ static void display(void)
 
 static void keypress(unsigned char key, int x, int y)
 {
-	if(key == 27) exit(0);
+	switch(key) {
+	case 27:
+		glutExit();
+		break;
 
-	demo_keyboard(key, 1);
+	case 'f':
+	case 'F':
+		opt.fullscreen ^= 1;
+		if(opt.fullscreen) {
+			prev_xsz = glutGet(GLUT_WINDOW_WIDTH);
+			prev_ysz = glutGet(GLUT_WINDOW_HEIGHT);
+			glutFullScreen();
+		} else {
+			glutReshapeWindow(prev_xsz, prev_ysz);
+		}
+		break;
+
+	default:
+		demo_keyboard(key, 1);
+	}
 }
 
 static void skeypress(int key, int x, int y)

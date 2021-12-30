@@ -37,6 +37,14 @@ int demo_init(void)
 	if(dsys_init("data/demoscript") == -1) {
 		return -1;
 	}
+	if(opt.scrname) {
+		struct demoscreen *scr = dsys_find_screen(opt.scrname);
+		if(scr) {
+			dsys_run_screen(scr);
+		} else {
+			fprintf(stderr, "ignoring screen option, no such screen: %s\n", opt.scrname);
+		}
+	}
 
 	return 0;
 }
