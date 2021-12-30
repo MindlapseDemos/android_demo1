@@ -58,7 +58,7 @@ int dsys_init(const char *fname)
 			proc_screen_script(scr, tsnode);
 
 		} else if(strcmp(tsnode->name, "track") == 0) {
-			proc_track(tsnode, "");
+			proc_track(tsnode, 0);
 		}
 		tsnode = tsnode->next;
 	}
@@ -84,7 +84,7 @@ static void proc_screen_script(struct demoscreen *scr, struct ts_node *node)
 	sub = node->child_list;
 	while(sub) {
 		if(strcmp(sub->name, "track") == 0) {
-			proc_track(sub, node->name);
+			proc_track(sub, scr->name);
 		}
 		sub = sub->next;
 	}
@@ -92,7 +92,33 @@ static void proc_screen_script(struct demoscreen *scr, struct ts_node *node)
 
 static void proc_track(struct ts_node *node, const char *pname)
 {
-	char *name, *fullname;
+	char *name, *buf;
+	struct ts_attr *attr;
+	long tm;
+	int tidx;
+	struct anm_track *trk;
+
+	if(!(name = (char*)ts_get_attr_str(node, "name", 0))) {
+		return;
+	}
+	if(pname) {
+		buf = alloca(strlen(name) + strlen(pname) + 2);
+		sprintf(buf, "%s.%s", pname, name);
+		name = buf;
+	}
+
+	if((tidx = dsys_add_track(name)) == -1) {
+		return;
+	}
+	trk = dsys.track + tidx;
+
+	attr = node->attr_list;
+	while(attr) {
+		if(sscanf(attr->name, "key_%ld", &tm) == 1 && attr->val.type == TS_NUMBER) {
+			anm_set_value(trk, tm, attr->val.fnum);
+		}
+		attr = attr->next;
+	}
 }
 
 static long io_read(void *buf, size_t bytes, void *uptr)
@@ -263,11 +289,14 @@ int dsys_add_track(const char *name)
 	darr_push(dsys.track, &trk);
 	darr_pushf(dsys.value, 0);
 
+	anm_init_track(dsys.track + idx);
+
 	if(rb_insert(dsys.trackmap, (char*)name, (void*)(intptr_t)idx) == -1) {
 		fprintf(stderr, "failed to insert to track map: %s\n", name);
 		abort();
 	}
-	return 0;
+	dsys.num_tracks = idx + 1;
+	return idx;
 }
 
 int dsys_find_track(const char *name)

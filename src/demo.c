@@ -51,6 +51,25 @@ void demo_display(void)
 	dsys_update();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glBindTexture(GL_TEXTURE_2D, tex_logo);
+	glUseProgram(sdr_foo);
+	gl_begin(GL_QUADS);
+	gl_color4f(1, 1, 1, dsys_value("flashlogo"));
+	gl_texcoord2f(0, 1);
+	gl_vertex2f(-1, -1);
+	gl_texcoord2f(1, 1);
+	gl_vertex2f(1, -1);
+	gl_texcoord2f(1, 0);
+	gl_vertex2f(1, 1);
+	gl_texcoord2f(0, 0);
+	gl_vertex2f(-1, 1);
+	gl_end();
+	glDisable(GL_BLEND);
+
 	dsys_draw();
 }
 
