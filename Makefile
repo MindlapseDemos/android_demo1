@@ -5,7 +5,7 @@ bin = demo
 
 warn = -pedantic -Wall
 dbg = -g
-#opt = -O3 -ffast-math -fno-strict-aliasing
+#opt = -O3 -ffast-math -fno-strict-aliasing -DNDEBUG
 def = -DMINIGLUT_USE_LIBC -DGLEW_STATIC
 incdir = -Isrc -Ilibs -Ilibs/imago/src -Ilibs/treestore -Ilibs/glew
 libs_path = libs/unix

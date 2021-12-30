@@ -4,11 +4,23 @@
 #include <ctype.h>
 #include "cfgopt.h"
 
+#ifdef NDEBUG
+/* release default options */
+#define DEFOPT_FULLSCR	1
+#define DEFOPT_VSYNC	1
+#define DEFOPT_MUSIC	1
+#else
+/* debug default options */
+#define DEFOPT_FULLSCR	0
+#define DEFOPT_VSYNC	1
+#define DEFOPT_MUSIC	0
+#endif
+
 struct options opt = {
 	0,	/* screen name */
-	0,	/* fullscreen */
-	1,	/* vsync */
-	0,	/* music */
+	DEFOPT_FULLSCR,
+	DEFOPT_VSYNC,
+	DEFOPT_MUSIC
 };
 
 static const char *usagefmt = "Usage: %s [options]\n"
