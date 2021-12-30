@@ -43,7 +43,7 @@ static void draw(void)
 		y = (i + 0.5f) / (NY/2.0f) - 1.0f;
 		for(j=0; j<NX; j++) {
 			x = (j + 0.5f) / (NX/2.0f) - 1.0f;
-			sz = cgm_lerp(1.0f, noise2(x * 5.0f, t) * noise2(y * 5.0f, t) * 2.5f, scr.vis);
+			sz = cgm_lerp(1.0f, noise3(x * 5.0f, y * 5.0, t) * 2.0f, scr.vis);
 			if(sz < 0.0f) sz = 0.0f;
 			if(sz > 1.0f) sz = 1.0f;
 			xr = sz / NX;
