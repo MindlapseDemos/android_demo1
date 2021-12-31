@@ -42,7 +42,8 @@ libdir64 = -Llibs/android64
 libdir32 = -Llibs/android32
 
 CFLAGS = $(CCSYSROOT) $(ISYS) $(warn) $(dbg) $(opt) $(def) $(incdir) -fPIC -fcommon -MMD
-LDFLAGS = $(LDSYSROOT) -lm -landroid -llog -lEGL -lGLESv2 -limago -lpsys -lanim -ltreestore
+LDFLAGS = $(LDSYSROOT) -pthread -lm -landroid -llog -lEGL -lGLESv2 -limago -lpsys \
+		  -lanim -ltreestore
 
 $(name).apk: $(name).aligned.apk keystore.jks
 	apksigner sign --ks keystore.jks --ks-key-alias androidkey --ks-pass pass:android --key-pass pass:android --out $@ $<
