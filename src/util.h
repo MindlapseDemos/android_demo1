@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(__WATCOMC__) || defined(WIN32)
+#if defined(__WATCOMC__) || defined(_WIN32)
 #include <malloc.h>
 #else
 #if !defined(__FreeBSD__) && !defined(__OpenBSD__)

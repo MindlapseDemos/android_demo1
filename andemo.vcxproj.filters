@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="src\screens">
+      <UniqueIdentifier>{bcc53176-9ffe-43e8-91b8-126cb891876f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\assfile.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\assman.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cfgopt.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\darray.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demo.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demosys.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\noise.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\opengl.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rbtree.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sanegl.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sdr.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scr\testa.c">
+      <Filter>src\screens</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scr\testb.c">
+      <Filter>src\screens</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pc\main.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pc\miniglut.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pc\assfilepc.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\glew\glew.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\assfile.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\assman.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\cfgopt.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\darray.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demo.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demosys.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\noise.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\opengl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rbtree.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sanegl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sdr.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\util.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pc\miniglut.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -10,3 +10,6 @@ data
 apkbuild
 *.exe
 *.cfg
+x64
+.vs
+*.vcxproj.user

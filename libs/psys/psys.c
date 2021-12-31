@@ -21,7 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <float.h>
 #include <assert.h>
 #include "psys.h"
+#ifdef PSYS_MULTITHREADED
 #include <pthread.h>
+#endif
 
 static int spawn_particle(struct psys_emitter *em, struct psys_particle *p);
 static void update_particle(struct psys_emitter *em, struct psys_particle *p, long tm, float dt, void *cls);
@@ -29,7 +31,9 @@ static void update_particle(struct psys_emitter *em, struct psys_particle *p, lo
 /* particle pool */
 static struct psys_particle *ppool;
 static int ppool_size;
+#ifdef PSYS_MULTITHREADED
 static pthread_mutex_t pool_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 static struct psys_particle *palloc(void);
 static void pfree(struct psys_particle *p);
@@ -347,7 +351,9 @@ static struct psys_particle *palloc(void)
 {
 	struct psys_particle *p;
 
+#ifdef PSYS_MULTITHREADED
 	pthread_mutex_lock(&pool_lock);
+#endif
 	if(ppool) {
 		p = ppool;
 		ppool = ppool->next;
@@ -355,16 +361,22 @@ static struct psys_particle *palloc(void)
 	} else {
 		p = malloc(sizeof *p);
 	}
+#ifdef PSYS_MULTITHREADED
 	pthread_mutex_unlock(&pool_lock);
+#endif
 
 	return p;
 }
 
 static void pfree(struct psys_particle *p)
 {
+#ifdef PSYS_MULTITHREADED
 	pthread_mutex_lock(&pool_lock);
+#endif
 	p->next = ppool;
 	ppool = p;
 	ppool_size++;
+#ifdef PSYS_MULTITHREADED
 	pthread_mutex_unlock(&pool_lock);
+#endif
 }

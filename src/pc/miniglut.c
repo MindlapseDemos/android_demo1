@@ -49,7 +49,7 @@ static int have_netwm_fullscr(void);
 #include <windows.h>
 #define BUILD_WIN32
 
-static HRESULT CALLBACK handle_message(HWND win, unsigned int msg, WPARAM wparam, LPARAM lparam);
+static LRESULT CALLBACK handle_message(HWND win, unsigned int msg, WPARAM wparam, LPARAM lparam);
 
 static HINSTANCE hinst;
 static HWND win;
@@ -1525,7 +1525,7 @@ static void create_window(const char *title)
 	reshape_pending = 1;
 }
 
-static HRESULT CALLBACK handle_message(HWND win, unsigned int msg, WPARAM wparam, LPARAM lparam)
+static LRESULT CALLBACK handle_message(HWND win, unsigned int msg, WPARAM wparam, LPARAM lparam)
 {
 	static int mouse_x, mouse_y;
 	int x, y, key;

@@ -5,7 +5,7 @@
 #include <assert.h>
 #include "treestore.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <malloc.h>
 #else
 #include <alloca.h>

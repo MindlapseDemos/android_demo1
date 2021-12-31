@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#if defined(__WATCOMC__) || defined(WIN32)
+#if defined(__WATCOMC__) || defined(_WIN32)
 #include <malloc.h>
 #else
 #ifndef __FreeBSD__
