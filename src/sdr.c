@@ -101,6 +101,7 @@ unsigned int create_shader(const char *src, unsigned int sdr_type)
 		glDeleteShader(sdr);
 		sdr = 0;
 	}
+	fflush(stderr);
 
 	free(info_str);
 	return sdr;
@@ -269,6 +270,7 @@ int link_program(unsigned int prog)
 		fprintf(stderr, info_str ? "linking failed: %s\n" : "linking failed\n", info_str);
 		retval = -1;
 	}
+	fflush(stderr);
 
 	free(info_str);
 	return retval;
