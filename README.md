@@ -45,7 +45,7 @@ For instance to clean and rebuild all libraries:
 
 Or to monitor the android log stream:
 
-    make -f makefile.android logcat
+    make -f Makefile.android logcat
 
 
 PC version build
