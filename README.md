@@ -6,7 +6,7 @@ Multiplatform demo for Android, GNU/Linux, and Windows.
 
 Grab data dir from subversion:
 
-  svn co svn://mutantstargoat.com/datadirs/android_demo1 data
+    svn co svn://mutantstargoat.com/datadirs/android_demo1 data
 
 
 License
