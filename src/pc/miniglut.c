@@ -1,6 +1,6 @@
 /*
 MiniGLUT - minimal GLUT subset without dependencies
-Copyright (C) 2020  John Tsiombikas <nuclear@member.fsf.org>
+Copyright (C) 2020-2022  John Tsiombikas <nuclear@member.fsf.org>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <stdio.h>
 #if defined(__unix__)
 
 #include <X11/Xlib.h>
@@ -50,7 +49,7 @@ static int have_netwm_fullscr(void);
 #include <windows.h>
 #define BUILD_WIN32
 
-static HRESULT CALLBACK handle_message(HWND win, unsigned int msg, WPARAM wparam, LPARAM lparam);
+static LRESULT CALLBACK handle_message(HWND win, unsigned int msg, WPARAM wparam, LPARAM lparam);
 
 static HINSTANCE hinst;
 static HWND win;
@@ -1532,7 +1531,7 @@ static void create_window(const char *title)
 	reshape_pending = 1;
 }
 
-static HRESULT CALLBACK handle_message(HWND win, unsigned int msg, WPARAM wparam, LPARAM lparam)
+static LRESULT CALLBACK handle_message(HWND win, unsigned int msg, WPARAM wparam, LPARAM lparam)
 {
 	static int mouse_x, mouse_y;
 	int x, y, key;

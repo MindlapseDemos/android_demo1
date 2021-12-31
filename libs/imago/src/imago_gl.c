@@ -285,7 +285,7 @@ unsigned int img_gltexture_read(struct img_io *io)
 #endif
 
 #endif
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #endif
 
@@ -301,7 +301,7 @@ static int load_glfunc(void)
 	gl_pixel_storei = (gl_pixel_storei_func)dlsym(RTLD_DEFAULT, "glPixelStorei");
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 	HANDLE dll = LoadLibrary("opengl32.dll");
 	if(dll) {
 		gl_gen_textures = (gl_gen_textures_func)GetProcAddress(dll, "glGenTextures");
