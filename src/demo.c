@@ -13,6 +13,9 @@ int demo_init(void)
 	if(init_opengl() == -1) {
 		return -1;
 	}
+	if(init_assman() == -1) {
+		return -1;
+	}
 
 	if(!(sdr_foo = get_sdrprog("sdr/foo.v.glsl", "sdr/foo.p.glsl"))) {
 		return -1;
@@ -52,6 +55,7 @@ int demo_init(void)
 void demo_cleanup(void)
 {
 	dsys_destroy();
+	destroy_assman();
 }
 
 void demo_display(void)

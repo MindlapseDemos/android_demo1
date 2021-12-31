@@ -18,13 +18,14 @@ static int init_gl(void);
 static void destroy_gl(void);
 static unsigned long get_time_msec(void);
 static void hide_navbar(struct android_app *state);
+static const char *cmdname(uint32_t cmd);
 
 struct android_app *app;
 
 static EGLDisplay dpy;
 static EGLSurface surf;
 static EGLContext ctx;
-static int init_done, paused;
+static int init_done, paused, win_valid;
 
 static int width, height;
 
@@ -57,10 +58,24 @@ void android_main(struct android_app *app_ptr)
 		if(app->destroyRequested) {
 			return;
 		}
-		if(init_done && !paused) {
-			time_msec = (long)get_time_msec() - start_time;
-			demo_display();
-			eglSwapBuffers(dpy, surf);
+
+		time_msec = (long)get_time_msec() - start_time;
+		if(!init_done) {
+			if(win_valid && time_msec >= 700) {
+				if(demo_init() == -1) {
+					exit(1);
+				}
+				demo_reshape(width, height);
+				init_done = 1;
+				dsys_run();
+				start_time = (long)get_time_msec();
+			}
+
+		} else {
+			if(!paused) {
+				demo_display();
+				eglSwapBuffers(dpy, surf);
+			}
 		}
 	}
 }
@@ -73,6 +88,8 @@ void swap_buffers(void)
 static void handle_command(struct android_app *app, int32_t cmd)
 {
 	int xsz, ysz;
+
+	printf("DBG android command: %s\n", cmdname(cmd));
 
 	switch(cmd) {
 	case APP_CMD_PAUSE:
@@ -89,18 +106,16 @@ static void handle_command(struct android_app *app, int32_t cmd)
 		if(init_gl() == -1) {
 			exit(1);
 		}
-		if(demo_init() == -1) {
-			exit(1);
-		}
-		demo_reshape(width, height);
 		start_time = (long)get_time_msec();
-		init_done = 1;
-		dsys_run();
+		win_valid = 1;
 		break;
 
 	case APP_CMD_TERM_WINDOW:
+		if(init_done) {
+			demo_cleanup();
+		}
 		init_done = 0;
-		demo_cleanup();
+		win_valid = 0;
 		destroy_gl();
 		break;
 
@@ -308,4 +323,30 @@ static void hide_navbar(struct android_app *state)
 	(*env)->CallVoidMethod(env, view, set_system_ui_visibility, flag_fs | flag_hidenav | flag_immersive);
 
 	(*state->activity->vm)->DetachCurrentThread(state->activity->vm);
+}
+
+static const char *cmdname(uint32_t cmd)
+{
+	static const char *names[] = {
+		"APP_CMD_INPUT_CHANGED",
+		"APP_CMD_INIT_WINDOW",
+		"APP_CMD_TERM_WINDOW",
+		"APP_CMD_WINDOW_RESIZED",
+		"APP_CMD_WINDOW_REDRAW_NEEDED",
+		"APP_CMD_CONTENT_RECT_CHANGED",
+		"APP_CMD_GAINED_FOCUS",
+		"APP_CMD_LOST_FOCUS",
+		"APP_CMD_CONFIG_CHANGED",
+		"APP_CMD_LOW_MEMORY",
+		"APP_CMD_START",
+		"APP_CMD_RESUME",
+		"APP_CMD_SAVE_STATE",
+		"APP_CMD_PAUSE",
+		"APP_CMD_STOP",
+		"APP_CMD_DESTROY"
+	};
+	if(cmd >= sizeof names / sizeof *names) {
+		return "unknown";
+	}
+	return names[cmd];
 }
