@@ -4,6 +4,7 @@
 #include "sanegl.h"
 #include "assman.h"
 #include "demosys.h"
+#include "music.h"
 
 static unsigned int sdr_foo;
 static unsigned int tex_logo;
@@ -49,11 +50,18 @@ int demo_init(void)
 		}
 	}
 
+	if(opt.music) {
+		if(init_music() == -1) {
+			return -1;
+		}
+		play_music();
+	}
 	return 0;
 }
 
 void demo_cleanup(void)
 {
+	destroy_music();
 	dsys_destroy();
 	destroy_assman();
 }

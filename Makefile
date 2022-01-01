@@ -1,4 +1,5 @@
-src = $(wildcard src/*.c) $(wildcard src/scr/*.c) $(wildcard src/pc/*.c) libs/glew/glew.c
+src = $(wildcard src/*.c) $(wildcard src/scr/*.c) $(wildcard src/pc/*.c) \
+	  libs/glew/glew.c
 obj = $(src:.c=.o)
 dep = $(src:.c=.d)
 bin = demo
@@ -12,10 +13,11 @@ libs_path = libs/unix
 libdir = -L$(libs_path)
 
 libs = $(libs_path)/libimago.a $(libs_path)/libtreestore.a $(libs_path)/libanim.a \
-	   $(libs_path)/libpsys.a
+	   $(libs_path)/libpsys.a $(libs_path)/libminiaudio.a
 
 CFLAGS = $(warn) $(dbg) $(opt) $(def) $(incdir) -fcommon -MMD
-LDFLAGS = $(libdir) $(libsys) $(libgl) -limago -lpsys -lanim -ltreestore $(libc)
+LDFLAGS = $(libdir) $(libsys) $(libgl) -limago -lpsys -lanim -ltreestore -lminiaudio \
+		  $(libc)
 
 sys ?= $(shell uname -s | sed 's/MINGW.*/mingw/')
 ifeq ($(sys), mingw)
@@ -26,6 +28,7 @@ ifeq ($(sys), mingw)
 	libs_path = libs/w32
 	libc = -lm
 else
+	libsys = -pthread
 	libgl = -lGL -lX11 -lXext
 	libc = -lm -ldl
 endif

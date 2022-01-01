@@ -13,7 +13,7 @@
 /* debug default options */
 #define DEFOPT_FULLSCR	0
 #define DEFOPT_VSYNC	1
-#define DEFOPT_MUSIC	0
+#define DEFOPT_MUSIC	1
 #endif
 
 struct options opt = {
