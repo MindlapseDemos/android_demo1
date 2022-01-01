@@ -29,8 +29,6 @@ static int init_done, paused, win_valid;
 
 static int width, height;
 
-static long start_time;
-
 
 void android_main(struct android_app *app_ptr)
 {
@@ -67,8 +65,8 @@ void android_main(struct android_app *app_ptr)
 				}
 				demo_reshape(width, height);
 				init_done = 1;
-				dsys_run();
 				start_time = (long)get_time_msec();
+				dsys_run();
 			}
 
 		} else {

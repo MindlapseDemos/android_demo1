@@ -13,7 +13,6 @@ static void mouse(int bn, int st, int x, int y);
 static int translate_key(int key);
 
 static int prev_xsz, prev_ysz;
-static long start_time;
 
 
 int main(int argc, char **argv)
@@ -49,6 +48,8 @@ int main(int argc, char **argv)
 	atexit(demo_cleanup);
 
 	start_time = glutGet(GLUT_ELAPSED_TIME);
+	dsys_run();
+
 	glutMainLoop();
 	return 0;
 }

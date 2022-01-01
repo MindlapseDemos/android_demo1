@@ -15,6 +15,7 @@ enum {
 	KEY_PGUP, KEY_PGDOWN
 };
 
+long start_time, stop_time;
 long time_msec;
 
 int demo_init(void);

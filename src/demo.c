@@ -91,6 +91,17 @@ void demo_display(void)
 	glDisable(GL_BLEND);
 
 	dsys_draw();
+
+	glBindTexture(GL_TEXTURE_2D, tex_logo);
+	glUseProgram(sdr_foo);
+	gl_begin(GL_QUADS);
+	gl_color4f(1, 1, 1, 1);
+	gl_texcoord2f(0.5, 0.5);
+	gl_vertex2f(-1, 0.98);
+	gl_vertex2f(dsys.t * 2.0f - 1.0f, 0.98);
+	gl_vertex2f(dsys.t * 2.0f - 1.0f, 1);
+	gl_vertex2f(-1, 1);
+	gl_end();
 }
 
 void demo_reshape(int x, int y)
@@ -123,9 +134,22 @@ void demo_keyboard(int key, int pressed)
 		dsys_seek_abs(0);
 		break;
 
+	case KEY_LEFT:
+		dsys_seek_rel(-1000);
+		break;
+	case KEY_RIGHT:
+		dsys_seek_rel(1000);
+		break;
+	case KEY_DOWN:
+		dsys_seek_rel(-5000);
+		break;
+	case KEY_UP:
+		dsys_seek_rel(5000);
+		break;
+
 	default:
 		if(key >= '0' && key <= '9') {
-			dsys_seek_rel((float)(key - '0') / 9.0f);
+			dsys_seek_norm((float)(key - '0') / 9.0f);
 
 		} else if(key >= KEY_F1 && key <= KEY_F12) {
 			int idx = key - KEY_F1;

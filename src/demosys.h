@@ -37,7 +37,8 @@ struct demoevent {
 struct demosystem {
 	int running;			/* run/stop state */
 	int eof;				/* end of demo flag, seek back to reset */
-	long tmsec;
+	long tmsec, tend;
+	float t;
 
 	struct demoscreen *screens[MAX_DSYS_SCREENS];
 	int num_screens;

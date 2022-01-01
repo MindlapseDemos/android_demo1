@@ -14,6 +14,8 @@ static void proc_screen_script(struct demoscreen *scr, struct ts_node *node);
 static void proc_track(struct ts_node *node, struct demoscreen *pscr);
 static long io_read(void *buf, size_t bytes, void *uptr);
 
+static int upd_pending;
+
 
 int dsys_init(const char *fname)
 {
@@ -21,6 +23,9 @@ int dsys_init(const char *fname)
 	struct ts_io io = {0};
 	struct ts_node *ts, *tsnode;
 	struct demoscreen *scr;
+
+	start_time = stop_time = time_msec = 0;
+	upd_pending = 0;
 
 	memset(&dsys, 0, sizeof dsys);
 	if(!(dsys.trackmap = rb_create(RB_KEY_STRING))) {
@@ -63,6 +68,8 @@ int dsys_init(const char *fname)
 		tsnode = tsnode->next;
 	}
 
+	dsys.tend = ts_lookup_num(ts, "demo.end", 0);
+	ts_free_tree(ts);
 	ass_fclose(io.data);
 	return 0;
 }
@@ -150,7 +157,18 @@ void dsys_update(void)
 	long tm;
 	struct demoscreen *scr;
 
+	if(!dsys.running && !upd_pending) return;
+	upd_pending = 0;
+
 	dsys.tmsec = time_msec;
+	if(dsys.tend > 0) {
+		if(dsys.tmsec >= dsys.tend) {
+			dsys.t = 1.0f;
+			dsys_stop();
+		} else {
+			dsys.t = (float)dsys.tmsec / (float)dsys.tend;
+		}
+	}
 
 	/* evaluate tracks */
 	for(i=0; i<dsys.num_ev; i++) {
@@ -222,22 +240,44 @@ void dsys_draw(void)
 
 void dsys_run(void)
 {
+	if(!dsys.running) {
+		dsys.running = 1;
+		if(stop_time > 0) {
+			start_time += time_msec - stop_time;
+			stop_time = 0;
+		}
+	}
 }
 
 void dsys_stop(void)
 {
+	if(dsys.running) {
+		dsys.running = 0;
+		stop_time = time_msec;
+	}
 }
 
 void dsys_seek_abs(long tm)
 {
+	start_time = time_msec - tm;
+	if(!dsys.running) {
+		stop_time = 0;
+	}
+	upd_pending = 1;
 }
 
 void dsys_seek_rel(long dt)
 {
+	start_time -= dt;
+	if(time_msec < start_time) start_time = time_msec;
+	upd_pending = 1;
 }
 
 void dsys_seek_norm(float t)
 {
+	if(dsys.tend <= 0) return;
+	dsys_seek_abs(dsys.tend * t);
+	upd_pending = 1;
 }
 
 
