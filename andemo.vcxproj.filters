@@ -68,6 +68,9 @@
     <ClCompile Include="libs\glew\glew.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\music.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\assfile.h">
@@ -107,6 +110,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\pc\miniglut.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\music.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
