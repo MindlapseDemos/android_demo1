@@ -26,7 +26,7 @@ directories where the android SDK and NDK are installed. The default paths
 correspond with the locations debian's package manager installs them after
 running:
 
-  apt-get install android-sdk android-sdk-platform-23 google-android-ndk-installer
+    apt-get install android-sdk android-sdk-platform-23 google-android-ndk-installer
 
 Also the `AVER` variable can be set to something other than 23 to change which
 android platform version to use.
