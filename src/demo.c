@@ -8,6 +8,7 @@
 
 static unsigned int sdr_foo;
 static unsigned int tex_logo;
+static int mute;
 
 int demo_init(void)
 {
@@ -55,6 +56,7 @@ int demo_init(void)
 			return -1;
 		}
 		play_music();
+		mute = 0;
 	}
 	return 0;
 }
@@ -122,6 +124,16 @@ void demo_keyboard(int key, int pressed)
 	if(!pressed) return;
 
 	switch(key) {
+	case 'm':
+	case 'M':
+		mute ^= 1;
+		if(mute) {
+			set_music_volume(0);
+		} else {
+			set_music_volume(1);
+		}
+		break;
+
 	case ' ':
 		if(dsys.running) {
 			dsys_stop();

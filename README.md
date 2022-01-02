@@ -87,3 +87,16 @@ Only the subset of OpenGL calls which are part of OpenGL ES 2.0 should be used.
 There are helper functions in `sanegl.h` to bring back some of the missing
 functionality, namely immediate mode rendering (with quads), and a matrix
 stack.
+
+
+Controls
+--------
+  - space: pause/play
+  - backspace: rewind to start
+  - 0-9: seek to 0% .. 90%
+  - left/right: short relative seek
+  - up/down: longer relative seek
+  - F1-F12: override script and run specific screen (equivalent to `-scr foo`
+    command line argument, or `screen = foo` configuration option).
+  - F: toggle fullscreen
+  - M: mute/unmute music

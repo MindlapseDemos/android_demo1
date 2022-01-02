@@ -8,4 +8,6 @@ void play_music(void);
 void stop_music(void);
 void seek_music(long tm);
 
+void set_music_volume(float vol);
+
 #endif	/* MUSIC_H_ */

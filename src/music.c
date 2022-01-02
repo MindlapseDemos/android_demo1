@@ -17,6 +17,7 @@ static ma_engine engine;
 static ma_sound sound;
 static ma_resource_manager resman;
 static ma_uint32 sample_rate;
+static float volume;
 
 static ma_vfs_callbacks vfs = {
 	vopen, 0,
@@ -60,6 +61,7 @@ int init_music(void)
 			(unsigned int)sample_rate / 1000, (unsigned int)sample_rate % 1000,
 			(unsigned int)nchan);
 	init_done = 1;
+	volume = 1.0f;
 	return 0;
 }
 
@@ -95,6 +97,14 @@ void seek_music(long tm)
 		if(tm < 0) tm = 0;
 		frm = (ma_uint64)tm * (ma_uint64)sample_rate / 1000llu;
 		ma_sound_seek_to_pcm_frame(&sound, frm);
+	}
+}
+
+void set_music_volume(float vol)
+{
+	if(init_done) {
+		volume = vol;
+		ma_engine_set_volume(&engine, vol);
 	}
 }
 
