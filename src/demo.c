@@ -149,7 +149,7 @@ void demo_keyboard(int key, int pressed)
 
 	default:
 		if(key >= '0' && key <= '9') {
-			dsys_seek_norm((float)(key - '0') / 9.0f);
+			dsys_seek_norm((float)(key - '0') / 10.0f);
 
 		} else if(key >= KEY_F1 && key <= KEY_F12) {
 			int idx = key - KEY_F1;

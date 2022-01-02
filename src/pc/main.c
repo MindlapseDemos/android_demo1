@@ -61,7 +61,7 @@ void swap_buffers(void)
 
 static void display(void)
 {
-	time_msec = glutGet(GLUT_ELAPSED_TIME) - start_time;
+	sys_time = glutGet(GLUT_ELAPSED_TIME);
 
 	demo_display();
 

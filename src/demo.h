@@ -16,7 +16,7 @@ enum {
 };
 
 long start_time, stop_time;
-long time_msec;
+long sys_time, time_msec;
 
 int demo_init(void);
 void demo_cleanup(void);

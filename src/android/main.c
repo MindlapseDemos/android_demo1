@@ -29,6 +29,8 @@ static int init_done, paused, win_valid;
 
 static int width, height;
 
+static long init_time;
+
 
 void android_main(struct android_app *app_ptr)
 {
@@ -57,15 +59,14 @@ void android_main(struct android_app *app_ptr)
 			return;
 		}
 
-		time_msec = (long)get_time_msec() - start_time;
+		sys_time = (long)get_time_msec();
 		if(!init_done) {
-			if(win_valid && time_msec >= 700) {
+			if(win_valid && sys_time - init_time >= 700) {
 				if(demo_init() == -1) {
 					exit(1);
 				}
 				demo_reshape(width, height);
 				init_done = 1;
-				start_time = (long)get_time_msec();
 				dsys_run();
 			}
 
@@ -104,7 +105,7 @@ static void handle_command(struct android_app *app, int32_t cmd)
 		if(init_gl() == -1) {
 			exit(1);
 		}
-		start_time = (long)get_time_msec();
+		init_time = (long)get_time_msec();
 		win_valid = 1;
 		break;
 

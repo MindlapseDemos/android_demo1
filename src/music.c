@@ -4,6 +4,7 @@
 #include "assfile.h"
 #include "miniaudio/miniaudio.h"
 
+static const char *fmtname(ma_format fmt);
 static ma_result vopen(ma_vfs *vfs, const char *path, ma_uint32 mode, ma_vfs_file *fret);
 static ma_result vclose(ma_vfs *vfs, ma_vfs_file fp);
 static ma_result vread(ma_vfs *vfs, ma_vfs_file fp, void *dest, size_t sz, size_t *numread);
@@ -11,9 +12,11 @@ static ma_result vseek(ma_vfs *vfs, ma_vfs_file fp, ma_int64 offs, ma_seek_origi
 static ma_result vtell(ma_vfs *vfs, ma_vfs_file fp, ma_int64 *pos);
 static ma_result vinfo(ma_vfs *vfs, ma_vfs_file fp, ma_file_info *inf);
 
+static int init_done;
 static ma_engine engine;
 static ma_sound sound;
 static ma_resource_manager resman;
+static ma_uint32 sample_rate;
 
 static ma_vfs_callbacks vfs = {
 	vopen, 0,
@@ -29,6 +32,8 @@ int init_music(void)
 	unsigned int flags;
 	ma_engine_config engcfg;
 	ma_resource_manager_config rescfg;
+	ma_format fmt;
+	ma_uint32 nchan;
 
 	rescfg = ma_resource_manager_config_init();
 	rescfg.pVFS = &vfs;
@@ -50,27 +55,62 @@ int init_music(void)
 		fprintf(stderr, "failed to load music\n");
 		return -1;
 	}
+	ma_sound_get_data_format(&sound, &fmt, &nchan, &sample_rate, 0, 0);
+	printf("loaded music: %s %u.%03u khz, %u channels\n", fmtname(fmt),
+			(unsigned int)sample_rate / 1000, (unsigned int)sample_rate % 1000,
+			(unsigned int)nchan);
+	init_done = 1;
 	return 0;
 }
 
 void destroy_music(void)
 {
-	ma_sound_stop(&sound);
-	ma_sound_uninit(&sound);
-	ma_engine_uninit(&engine);
+	if(init_done) {
+		ma_sound_stop(&sound);
+		ma_sound_uninit(&sound);
+		ma_engine_uninit(&engine);
+	}
+	init_done = 0;
 }
 
 void play_music(void)
 {
-	ma_sound_start(&sound);
+	if(init_done) {
+		ma_sound_start(&sound);
+	}
 }
 
 void stop_music(void)
 {
-	ma_sound_stop(&sound);
+	if(init_done) {
+		ma_sound_stop(&sound);
+	}
+}
+
+void seek_music(long tm)
+{
+	ma_uint64 frm;
+
+	if(init_done) {
+		if(tm < 0) tm = 0;
+		frm = (ma_uint64)tm * (ma_uint64)sample_rate / 1000llu;
+		ma_sound_seek_to_pcm_frame(&sound, frm);
+	}
 }
 
 
+static const char *fmtname(ma_format fmt)
+{
+	switch(fmt) {
+	case ma_format_u8: return "8 bit";
+	case ma_format_s16: return "16 bit";
+	case ma_format_s24: return "24 bit";
+	case ma_format_s32: return "32 bit";
+	case ma_format_f32: return "float";
+	default:
+		return "unknown";
+	}
+}
 
 static ma_result vopen(ma_vfs *vfs, const char *path, ma_uint32 mode, ma_vfs_file *fret)
 {

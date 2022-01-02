@@ -6,6 +6,7 @@
 #include "assfile.h"
 #include "rbtree.h"
 #include "darray.h"
+#include "music.h"
 
 void regscr_testa(void);
 void regscr_testb(void);
@@ -157,12 +158,15 @@ void dsys_update(void)
 	long tm;
 	struct demoscreen *scr;
 
+	time_msec = sys_time - start_time;
+
 	if(!dsys.running && !upd_pending) return;
 	upd_pending = 0;
 
 	dsys.tmsec = time_msec;
 	if(dsys.tend > 0) {
 		if(dsys.tmsec >= dsys.tend) {
+			dsys.tmsec = dsys.tend;
 			dsys.t = 1.0f;
 			dsys_stop();
 		} else {
@@ -223,7 +227,6 @@ void dsys_update(void)
 	}
 }
 
-/* TODO: do something about draw ordering of the active screens */
 void dsys_draw(void)
 {
 	int i;
@@ -241,6 +244,7 @@ void dsys_draw(void)
 void dsys_run(void)
 {
 	if(!dsys.running) {
+		play_music();
 		dsys.running = 1;
 		if(stop_time > 0) {
 			start_time += time_msec - stop_time;
@@ -252,6 +256,7 @@ void dsys_run(void)
 void dsys_stop(void)
 {
 	if(dsys.running) {
+		stop_music();
 		dsys.running = 0;
 		stop_time = time_msec;
 	}
@@ -259,18 +264,23 @@ void dsys_stop(void)
 
 void dsys_seek_abs(long tm)
 {
-	start_time = time_msec - tm;
+	start_time = sys_time - tm;
 	if(!dsys.running) {
 		stop_time = 0;
 	}
 	upd_pending = 1;
+	seek_music(tm);
 }
 
 void dsys_seek_rel(long dt)
 {
 	start_time -= dt;
-	if(time_msec < start_time) start_time = time_msec;
+	if(sys_time < start_time) start_time = sys_time;
+	if(dsys.tend > 0 && sys_time - start_time > dsys.tend) {
+		start_time = sys_time - dsys.tend;
+	}
 	upd_pending = 1;
+	seek_music(sys_time - start_time);
 }
 
 void dsys_seek_norm(float t)
@@ -315,6 +325,8 @@ void dsys_run_screen(struct demoscreen *scr)
 	dsys.num_act = 0;
 
 	dsys.scr_override = scr;
+	dsys.tend = 0;
+	dsys.t = 0;
 
 	if(scr->start) scr->start();
 	scr->start_time = dsys.tmsec;
