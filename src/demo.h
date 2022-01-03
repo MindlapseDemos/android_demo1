@@ -15,8 +15,13 @@ enum {
 	KEY_PGUP, KEY_PGDOWN
 };
 
+int win_width, win_height;
+float win_aspect;
+
 long start_time, stop_time;
 long sys_time, time_msec;
+
+unsigned int sdr_dbg;
 
 int demo_init(void);
 void demo_cleanup(void);

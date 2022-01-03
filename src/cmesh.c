@@ -4,6 +4,7 @@
 #include <float.h>
 #include <assert.h>
 #include "opengl.h"
+#include "sdr.h"
 #include "cmesh.h"
 #include "util.h"
 
@@ -92,6 +93,19 @@ void cmesh_clear_attrib_sdrloc(void)
 	for(i=0; i<CMESH_NUM_ATTR; i++) {
 		sdr_loc[i] = -1;
 	}
+}
+
+void cmesh_bind_sdrloc(unsigned int sdr)
+{
+	glBindAttribLocation(sdr, CMESH_ATTR_VERTEX, "attr_vertex");
+	glBindAttribLocation(sdr, CMESH_ATTR_NORMAL, "attr_normal");
+	glBindAttribLocation(sdr, CMESH_ATTR_TANGENT, "attr_tangent");
+	glBindAttribLocation(sdr, CMESH_ATTR_TEXCOORD, "attr_texcoord");
+	glBindAttribLocation(sdr, CMESH_ATTR_COLOR, "attr_color");
+	glBindAttribLocation(sdr, CMESH_ATTR_BONEWEIGHTS, "attr_boneweights");
+	glBindAttribLocation(sdr, CMESH_ATTR_BONEIDX, "attr_boneidx");
+	glBindAttribLocation(sdr, CMESH_ATTR_TEXCOORD2, "attr_texcoord2");
+	link_program(sdr);
 }
 
 /* mesh functions */
@@ -506,6 +520,7 @@ unsigned int *cmesh_set_index(struct cmesh *cm, int num, const unsigned int *ind
 	free(cm->idata);
 	cm->idata = tmp;
 	cm->icount = num;
+	cm->nfaces = num / 3;
 	cm->idata_valid = 1;
 	cm->ibo_valid = 0;
 	return tmp;
@@ -1022,9 +1037,7 @@ void cmesh_calc_face_normals(struct cmesh *cm)
 
 static int pre_draw(struct cmesh *cm)
 {
-	int i, loc, cur_sdr;
-
-	glGetIntegerv(GL_CURRENT_PROGRAM, &cur_sdr);
+	int i, loc;
 
 	update_buffers(cm);
 
@@ -1032,60 +1045,25 @@ static int pre_draw(struct cmesh *cm)
 		return -1;
 	}
 
-	if(cur_sdr && use_custom_sdr_attr) {
-		if(sdr_loc[CMESH_ATTR_VERTEX] == -1) {
-			return -1;
-		}
+	if(sdr_loc[CMESH_ATTR_VERTEX] == -1) {
+		return -1;
+	}
 
-		for(i=0; i<CMESH_NUM_ATTR; i++) {
-			loc = sdr_loc[i];
-			if(loc >= 0 && cm->vattr[i].vbo_valid) {
-				glBindBuffer(GL_ARRAY_BUFFER, cm->vattr[i].vbo);
-				glVertexAttribPointer(loc, cm->vattr[i].nelem, GL_FLOAT, GL_FALSE, 0, 0);
-				glEnableVertexAttribArray(loc);
-			}
+	for(i=0; i<CMESH_NUM_ATTR; i++) {
+		loc = sdr_loc[i];
+		if(loc >= 0 && cm->vattr[i].vbo_valid) {
+			glBindBuffer(GL_ARRAY_BUFFER, cm->vattr[i].vbo);
+			glVertexAttribPointer(loc, cm->vattr[i].nelem, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(loc);
 		}
-	} else {
-#ifndef GL_ES_VERSION_2_0
-		glBindBuffer(GL_ARRAY_BUFFER, cm->vattr[CMESH_ATTR_VERTEX].vbo);
-		glVertexPointer(cm->vattr[CMESH_ATTR_VERTEX].nelem, GL_FLOAT, 0, 0);
-		glEnableClientState(GL_VERTEX_ARRAY);
-
-		if(cm->vattr[CMESH_ATTR_NORMAL].vbo_valid) {
-			glBindBuffer(GL_ARRAY_BUFFER, cm->vattr[CMESH_ATTR_NORMAL].vbo);
-			glNormalPointer(GL_FLOAT, 0, 0);
-			glEnableClientState(GL_NORMAL_ARRAY);
-		}
-		if(cm->vattr[CMESH_ATTR_TEXCOORD].vbo_valid) {
-			glBindBuffer(GL_ARRAY_BUFFER, cm->vattr[CMESH_ATTR_TEXCOORD].vbo);
-			glTexCoordPointer(cm->vattr[CMESH_ATTR_TEXCOORD].nelem, GL_FLOAT, 0, 0);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		}
-		if(cm->vattr[CMESH_ATTR_COLOR].vbo_valid) {
-			glBindBuffer(GL_ARRAY_BUFFER, cm->vattr[CMESH_ATTR_COLOR].vbo);
-			glColorPointer(cm->vattr[CMESH_ATTR_COLOR].nelem, GL_FLOAT, 0, 0);
-			glEnableClientState(GL_COLOR_ARRAY);
-		}
-		if(cm->vattr[CMESH_ATTR_TEXCOORD2].vbo_valid) {
-			glClientActiveTexture(GL_TEXTURE1);
-			glBindBuffer(GL_ARRAY_BUFFER, cm->vattr[CMESH_ATTR_TEXCOORD2].vbo);
-			glTexCoordPointer(cm->vattr[CMESH_ATTR_TEXCOORD2].nelem, GL_FLOAT, 0, 0);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-			glClientActiveTexture(GL_TEXTURE0);
-		}
-#endif	/* GL_ES_VERSION_2_0 */
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	return cur_sdr;
+	return 0;
 }
 
 void cmesh_draw(struct cmesh *cm)
 {
-	int cur_sdr;
-
-	if((cur_sdr = pre_draw(cm)) == -1) {
-		return;
-	}
+	pre_draw(cm);
 
 	if(cm->ibo_valid) {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cm->ibo);
@@ -1095,7 +1073,7 @@ void cmesh_draw(struct cmesh *cm)
 		glDrawArrays(GL_TRIANGLES, 0, cm->nverts);
 	}
 
-	post_draw(cm, cur_sdr);
+	post_draw(cm, 0);
 }
 
 void cmesh_draw_range(struct cmesh *cm, int start, int count)
@@ -1137,31 +1115,11 @@ static void post_draw(struct cmesh *cm, int cur_sdr)
 {
 	int i;
 
-	if(cur_sdr && use_custom_sdr_attr) {
-		for(i=0; i<CMESH_NUM_ATTR; i++) {
-			int loc = sdr_loc[i];
-			if(loc >= 0 && cm->vattr[i].vbo_valid) {
-				glDisableVertexAttribArray(loc);
-			}
+	for(i=0; i<CMESH_NUM_ATTR; i++) {
+		int loc = sdr_loc[i];
+		if(loc >= 0 && cm->vattr[i].vbo_valid) {
+			glDisableVertexAttribArray(loc);
 		}
-	} else {
-#ifndef GL_ES_VERSION_2_0
-		glDisableClientState(GL_VERTEX_ARRAY);
-		if(cm->vattr[CMESH_ATTR_NORMAL].vbo_valid) {
-			glDisableClientState(GL_NORMAL_ARRAY);
-		}
-		if(cm->vattr[CMESH_ATTR_TEXCOORD].vbo_valid) {
-			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-		}
-		if(cm->vattr[CMESH_ATTR_COLOR].vbo_valid) {
-			glDisableClientState(GL_COLOR_ARRAY);
-		}
-		if(cm->vattr[CMESH_ATTR_TEXCOORD2].vbo_valid) {
-			glClientActiveTexture(GL_TEXTURE1);
-			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-			glClientActiveTexture(GL_TEXTURE0);
-		}
-#endif	/* GL_ES_VERSION_2_0 */
 	}
 }
 

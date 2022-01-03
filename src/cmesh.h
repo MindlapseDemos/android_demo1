@@ -24,6 +24,8 @@ void cmesh_set_attrib_sdrloc(int attr, int loc);
 int cmesh_get_attrib_sdrloc(int attr);
 void cmesh_clear_attrib_sdrloc(void);
 
+void cmesh_bind_sdrloc(unsigned int sdr);
+
 /* mesh functions */
 struct cmesh *cmesh_alloc(void);
 void cmesh_free(struct cmesh *cm);

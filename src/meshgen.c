@@ -3,7 +3,7 @@
 #include "cmesh.h"
 #include "darray.h"
 
-// -------- sphere --------
+/* -------- sphere -------- */
 
 #define SURAD(u)	((u) * 2.0 * M_PI)
 #define SVRAD(v)	((v) * M_PI)
@@ -23,7 +23,7 @@ void gen_sphere(struct cmesh *mesh, float rad, int usub, int vsub, float urange,
 	cgm_vec3 *varr, *narr, *tarr, pos, v0, v1;
 	cgm_vec2 *uvarr;
 
-	if(urange == 0.0 || vrange == 0.0) return;
+	if(urange == 0.0f || vrange == 0.0f) return;
 
 	if(usub < 4) usub = 4;
 	if(vsub < 2) vsub = 2;
@@ -84,7 +84,7 @@ void gen_sphere(struct cmesh *mesh, float rad, int usub, int vsub, float urange,
 	}
 }
 
-// ------ geosphere ------
+/* ------ geosphere ------ */
 #define PHI		1.618034
 
 static cgm_vec3 icosa_pt[] = {
@@ -208,7 +208,7 @@ void gen_geosphere(struct cmesh *mesh, float rad, int subdiv, int hemi)
 	}
 }
 
-// -------- torus -----------
+/* -------- torus ----------- */
 static void torusvec(cgm_vec3 *v, float theta, float phi, float mr, float rr)
 {
 	float rx, ry, rz;
@@ -296,61 +296,73 @@ void gen_torus(struct cmesh *mesh, float mainrad, float ringrad, int usub, int v
 	}
 }
 
+/* -------- cylinder -------- */
 
-#if 0
-// -------- cylinder --------
-
-static Vec3 cylvec(float theta, float height)
+static void cylvec(cgm_vec3 *v, float theta, float height)
 {
-	return Vec3(sin(theta), height, cos(theta));
+	v->x = sin(theta);
+	v->y = height;
+	v->z = cos(theta);
 }
 
 void gen_cylinder(struct cmesh *mesh, float rad, float height, int usub, int vsub, int capsub, float urange, float vrange)
 {
+	int i, j, uverts, vverts, num_body_verts, num_body_quads, num_body_tri, idx;
+	int capvverts, num_cap_verts, num_cap_quads, num_cap_tri, num_verts, num_tri;
+	cgm_vec3 *varr, *narr, *tarr, pos, vprev, tang;
+	cgm_vec2 *uvarr;
+	float y, u, v, du, dv, theta, r;
+	unsigned int *idxarr, vidx[4];
+
 	if(usub < 4) usub = 4;
 	if(vsub < 1) vsub = 1;
 
-	int uverts = usub + 1;
-	int vverts = vsub + 1;
+	uverts = usub + 1;
+	vverts = vsub + 1;
 
-	int num_body_verts = uverts * vverts;
-	int num_body_quads = usub * vsub;
-	int num_body_tri = num_body_quads * 2;
+	num_body_verts = uverts * vverts;
+	num_body_quads = usub * vsub;
+	num_body_tri = num_body_quads * 2;
 
-	int capvverts = capsub ? capsub + 1 : 0;
-	int num_cap_verts = uverts * capvverts;
-	int num_cap_quads = usub * capsub;
-	int num_cap_tri = num_cap_quads * 2;
+	capvverts = capsub ? capsub + 1 : 0;
+	num_cap_verts = uverts * capvverts;
+	num_cap_quads = usub * capsub;
+	num_cap_tri = num_cap_quads * 2;
 
-	int num_verts = num_body_verts + num_cap_verts * 2;
-	int num_tri = num_body_tri + num_cap_tri * 2;
+	num_verts = num_body_verts + num_cap_verts * 2;
+	num_tri = num_body_tri + num_cap_tri * 2;
 
-	mesh->clear();
-	Vec3 *varr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_VERTEX, 3, num_verts, 0);
-	Vec3 *narr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_NORMAL, 3, num_verts, 0);
-	Vec3 *tarr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_TANGENT, 3, num_verts, 0);
-	Vec2 *uvarr = (Vec2*)mesh->set_attrib_data(MESH_ATTR_TEXCOORD, 2, num_verts, 0);
-	unsigned int *idxarr = mesh->set_index_data(num_tri * 3, 0);
+	cmesh_clear(mesh);
+	varr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_VERTEX, 3, num_verts, 0);
+	narr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_NORMAL, 3, num_verts, 0);
+	tarr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_TANGENT, 3, num_verts, 0);
+	uvarr = (cgm_vec2*)cmesh_set_attrib(mesh, CMESH_ATTR_TEXCOORD, 2, num_verts, 0);
+	idxarr = (unsigned int*)cmesh_set_index(mesh, num_tri * 3, 0);
 
-	float du = urange / (float)(uverts - 1);
-	float dv = vrange / (float)(vverts - 1);
+	du = urange / (float)(uverts - 1);
+	dv = vrange / (float)(vverts - 1);
 
-	float u = 0.0;
-	for(int i=0; i<uverts; i++) {
-		float theta = SURAD(u);
+	u = 0.0f;
+	for(i=0; i<uverts; i++) {
+		theta = SURAD(u);
 
-		float v = 0.0;
-		for(int j=0; j<vverts; j++) {
-			float y = (v - 0.5) * height;
-			Vec3 pos = cylvec(theta, y);
+		v = 0.0f;
+		for(j=0; j<vverts; j++) {
+			y = (v - 0.5) * height;
+			cylvec(&pos, theta, y);
 
-			*varr++ = Vec3(pos.x * rad, pos.y, pos.z * rad);
-			*narr++ = Vec3(pos.x, 0.0, pos.z);
-			*tarr++ = normalize(cylvec(theta + 0.1, 0.0) - cylvec(theta - 0.1, 0.0));
-			*uvarr++ = Vec2(u * urange, v * vrange);
+			cgm_vcons(varr++, pos.x * rad, pos.y, pos.z * rad);
+			cgm_vcons(narr++, pos.x, 0.0f, pos.z);
+			cylvec(&vprev, theta - 0.1f, 0.0f);
+			cylvec(tarr, theta + 0.1f, 0.0f);
+			cgm_vsub(tarr, &vprev);
+			cgm_vnormalize(tarr++);
+			uvarr->x = u * urange;
+			uvarr->y = v * vrange;
+			uvarr++;
 
 			if(i < usub && j < vsub) {
-				int idx = i * vverts + j;
+				idx = i * vverts + j;
 
 				*idxarr++ = idx;
 				*idxarr++ = idx + vverts + 1;
@@ -367,7 +379,7 @@ void gen_cylinder(struct cmesh *mesh, float rad, float height, int usub, int vsu
 	}
 
 
-	// now the cap!
+	/* now the cap! */
 	if(!capsub) {
 		return;
 	}
@@ -375,37 +387,43 @@ void gen_cylinder(struct cmesh *mesh, float rad, float height, int usub, int vsu
 	dv = 1.0 / (float)(capvverts - 1);
 
 	u = 0.0;
-	for(int i=0; i<uverts; i++) {
-		float theta = SURAD(u);
+	for(i=0; i<uverts; i++) {
+		theta = SURAD(u);
 
-		float v = 0.0;
-		for(int j=0; j<capvverts; j++) {
-			float r = v * rad;
+		v = 0.0;
+		for(j=0; j<capvverts; j++) {
+			r = v * rad;
 
-			Vec3 pos = cylvec(theta, height / 2.0) * r;
+			cylvec(&pos, theta, height / 2.0f);
+			cgm_vscale(&pos, r);
 			pos.y = height / 2.0;
-			Vec3 tang = normalize(cylvec(theta + 0.1, 0.0) - cylvec(theta - 0.1, 0.0));
+			cylvec(&vprev, theta - 0.1f, 0.0f);
+			cylvec(&tang, theta + 0.1f, 0.0f);
+			cgm_vsub(&tang, &vprev);
+			cgm_vnormalize(&tang);
 
 			*varr++ = pos;
-			*narr++ = Vec3(0, 1, 0);
+			cgm_vcons(narr++, 0, 1, 0);
 			*tarr++ = tang;
-			*uvarr++ = Vec2(u * urange, v);
+			uvarr->x = u * urange;
+			uvarr->y = v;
+			uvarr++;
 
 			pos.y = -height / 2.0;
 			*varr++ = pos;
-			*narr++ = Vec3(0, -1, 0);
-			*tarr++ = -tang;
-			*uvarr++ = Vec2(u * urange, v);
+			cgm_vcons(narr++, 0, -1, 0);
+			cgm_vcons(tarr++, -tang.x, -tang.y, -tang.z);
+			uvarr->x = u * urange;
+			uvarr->y = v;
+			uvarr++;
 
 			if(i < usub && j < capsub) {
-				unsigned int idx = num_body_verts + (i * capvverts + j) * 2;
+				idx = num_body_verts + (i * capvverts + j) * 2;
 
-				unsigned int vidx[4] = {
-					idx,
-					idx + capvverts * 2,
-					idx + (capvverts + 1) * 2,
-					idx + 2
-				};
+				vidx[0] = idx;
+				vidx[1] = idx + capvverts * 2;
+				vidx[2] = idx + (capvverts + 1) * 2;
+				vidx[3] = idx + 2;
 
 				*idxarr++ = vidx[0];
 				*idxarr++ = vidx[2];
@@ -428,63 +446,79 @@ void gen_cylinder(struct cmesh *mesh, float rad, float height, int usub, int vsu
 	}
 }
 
-// -------- cone --------
+/* -------- cone -------- */
 
-static Vec3 conevec(float theta, float y, float height)
+static void conevec(cgm_vec3 *v, float theta, float y, float height)
 {
-	float scale = 1.0 - y / height;
-	return Vec3(sin(theta) * scale, y, cos(theta) * scale);
+	float scale = 1.0f - y / height;
+	v->x = sin(theta) * scale;
+	v->y = y;
+	v->z = cos(theta) * scale;
 }
 
 void gen_cone(struct cmesh *mesh, float rad, float height, int usub, int vsub, int capsub, float urange, float vrange)
 {
+	int i, j, uverts, vverts, num_body_verts, num_body_quads, num_body_tri, idx;
+	int capvverts, num_cap_verts, num_cap_quads, num_cap_tri, num_verts, num_tri;
+	cgm_vec3 *varr, *narr, *tarr, pos, vprev, tang, bitang;
+	cgm_vec2 *uvarr;
+	unsigned int *idxarr, vidx[4];
+	float u, v, du, dv, theta, y, r;
+
 	if(usub < 4) usub = 4;
 	if(vsub < 1) vsub = 1;
 
-	int uverts = usub + 1;
-	int vverts = vsub + 1;
+	uverts = usub + 1;
+	vverts = vsub + 1;
 
-	int num_body_verts = uverts * vverts;
-	int num_body_quads = usub * vsub;
-	int num_body_tri = num_body_quads * 2;
+	num_body_verts = uverts * vverts;
+	num_body_quads = usub * vsub;
+	num_body_tri = num_body_quads * 2;
 
-	int capvverts = capsub ? capsub + 1 : 0;
-	int num_cap_verts = uverts * capvverts;
-	int num_cap_quads = usub * capsub;
-	int num_cap_tri = num_cap_quads * 2;
+	capvverts = capsub ? capsub + 1 : 0;
+	num_cap_verts = uverts * capvverts;
+	num_cap_quads = usub * capsub;
+	num_cap_tri = num_cap_quads * 2;
 
-	int num_verts = num_body_verts + num_cap_verts;
-	int num_tri = num_body_tri + num_cap_tri;
+	num_verts = num_body_verts + num_cap_verts;
+	num_tri = num_body_tri + num_cap_tri;
 
-	mesh->clear();
-	Vec3 *varr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_VERTEX, 3, num_verts, 0);
-	Vec3 *narr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_NORMAL, 3, num_verts, 0);
-	Vec3 *tarr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_TANGENT, 3, num_verts, 0);
-	Vec2 *uvarr = (Vec2*)mesh->set_attrib_data(MESH_ATTR_TEXCOORD, 2, num_verts, 0);
-	unsigned int *idxarr = mesh->set_index_data(num_tri * 3, 0);
+	cmesh_clear(mesh);
+	varr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_VERTEX, 3, num_verts, 0);
+	narr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_NORMAL, 3, num_verts, 0);
+	tarr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_TANGENT, 3, num_verts, 0);
+	uvarr = (cgm_vec2*)cmesh_set_attrib(mesh, CMESH_ATTR_TEXCOORD, 2, num_verts, 0);
+	idxarr = (unsigned int*)cmesh_set_index(mesh, num_tri * 3, 0);
 
-	float du = urange / (float)(uverts - 1);
-	float dv = vrange / (float)(vverts - 1);
+	du = urange / (float)(uverts - 1);
+	dv = vrange / (float)(vverts - 1);
 
-	float u = 0.0;
-	for(int i=0; i<uverts; i++) {
-		float theta = SURAD(u);
+	u = 0.0;
+	for(i=0; i<uverts; i++) {
+		theta = SURAD(u);
 
-		float v = 0.0;
-		for(int j=0; j<vverts; j++) {
-			float y = v * height;
-			Vec3 pos = conevec(theta, y, height);
+		v = 0.0;
+		for(j=0; j<vverts; j++) {
+			y = v * height;
+			conevec(&pos, theta, y, height);
 
-			Vec3 tang = normalize(conevec(theta + 0.1, 0.0, height) - conevec(theta - 0.1, 0.0, height));
-			Vec3 bitang = normalize(conevec(theta, y + 0.1, height) - pos);
+			conevec(&vprev, theta - 0.1f, 0.0f, height);
+			conevec(&tang, theta + 0.1f, 0.0f, height);
+			cgm_vsub(&tang, &vprev);
+			cgm_vnormalize(&tang);
+			conevec(&bitang, theta, y + 0.1f, height);
+			cgm_vsub(&bitang, &pos);
+			cgm_vnormalize(&bitang);
 
-			*varr++ = Vec3(pos.x * rad, pos.y, pos.z * rad);
-			*narr++ = cross(tang, bitang);
+			cgm_vcons(varr++, pos.x * rad, pos.y, pos.z * rad);
+			cgm_vcross(narr++, &tang, &bitang);
 			*tarr++ = tang;
-			*uvarr++ = Vec2(u * urange, v * vrange);
+			uvarr->x = u * urange;
+			uvarr->y = v * vrange;
+			uvarr++;
 
 			if(i < usub && j < vsub) {
-				int idx = i * vverts + j;
+				idx = i * vverts + j;
 
 				*idxarr++ = idx;
 				*idxarr++ = idx + vverts + 1;
@@ -501,7 +535,7 @@ void gen_cone(struct cmesh *mesh, float rad, float height, int usub, int vsub, i
 	}
 
 
-	// now the bottom cap!
+	/* now the bottom cap! */
 	if(!capsub) {
 		return;
 	}
@@ -509,30 +543,34 @@ void gen_cone(struct cmesh *mesh, float rad, float height, int usub, int vsub, i
 	dv = 1.0 / (float)(capvverts - 1);
 
 	u = 0.0;
-	for(int i=0; i<uverts; i++) {
-		float theta = SURAD(u);
+	for(i=0; i<uverts; i++) {
+		theta = SURAD(u);
 
-		float v = 0.0;
-		for(int j=0; j<capvverts; j++) {
-			float r = v * rad;
+		v = 0.0;
+		for(j=0; j<capvverts; j++) {
+			r = v * rad;
 
-			Vec3 pos = conevec(theta, 0.0, height) * r;
-			Vec3 tang = normalize(cylvec(theta + 0.1, 0.0) - cylvec(theta - 0.1, 0.0));
+			conevec(&pos, theta, 0.0f, height);
+			cgm_vscale(&pos, r);
+			cylvec(&vprev, theta - 0.1f, 0.0f);
+			cylvec(&tang, theta + 0.1f, 0.0f);
+			cgm_vsub(&tang, &vprev);
+			cgm_vnormalize(&tang);
 
 			*varr++ = pos;
-			*narr++ = Vec3(0, -1, 0);
+			cgm_vcons(narr++, 0, -1, 0);
 			*tarr++ = tang;
-			*uvarr++ = Vec2(u * urange, v);
+			uvarr->x = u * urange;
+			uvarr->y = v;
+			uvarr++;
 
 			if(i < usub && j < capsub) {
-				unsigned int idx = num_body_verts + i * capvverts + j;
+				idx = num_body_verts + i * capvverts + j;
 
-				unsigned int vidx[4] = {
-					idx,
-					idx + capvverts,
-					idx + (capvverts + 1),
-					idx + 1
-				};
+				vidx[0] = idx;
+				vidx[1] = idx + capvverts;
+				vidx[2] = idx + (capvverts + 1);
+				vidx[3] = idx + 1;
 
 				*idxarr++ = vidx[0];
 				*idxarr++ = vidx[1];
@@ -549,64 +587,73 @@ void gen_cone(struct cmesh *mesh, float rad, float height, int usub, int vsub, i
 }
 
 
-// -------- plane --------
+/* -------- plane -------- */
 
 void gen_plane(struct cmesh *mesh, float width, float height, int usub, int vsub)
 {
-	gen_heightmap(mesh, width, height, usub, vsub, 0);
+	gen_heightmap(mesh, width, height, usub, vsub, 0, 0);
 }
 
 
-// ----- heightmap ------
+/* ----- heightmap ------ */
 
 void gen_heightmap(struct cmesh *mesh, float width, float height, int usub, int vsub, float (*hf)(float, float, void*), void *hfdata)
 {
+	int i, j, uverts, vverts, num_verts, num_quads, num_tri, idx;
+	cgm_vec3 *varr, *narr, *tarr, normal, tang, bitan;
+	cgm_vec2 *uvarr;
+	unsigned int *idxarr;
+	float u, v, du, dv, x, y, z, u1z, v1z;
+
 	if(usub < 1) usub = 1;
 	if(vsub < 1) vsub = 1;
 
-	mesh->clear();
+	cmesh_clear(mesh);
 
-	int uverts = usub + 1;
-	int vverts = vsub + 1;
-	int num_verts = uverts * vverts;
+	uverts = usub + 1;
+	vverts = vsub + 1;
+	num_verts = uverts * vverts;
 
-	int num_quads = usub * vsub;
-	int num_tri = num_quads * 2;
+	num_quads = usub * vsub;
+	num_tri = num_quads * 2;
 
-	Vec3 *varr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_VERTEX, 3, num_verts, 0);
-	Vec3 *narr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_NORMAL, 3, num_verts, 0);
-	Vec3 *tarr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_TANGENT, 3, num_verts, 0);
-	Vec2 *uvarr = (Vec2*)mesh->set_attrib_data(MESH_ATTR_TEXCOORD, 2, num_verts, 0);
-	unsigned int *idxarr = mesh->set_index_data(num_tri * 3, 0);
+	varr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_VERTEX, 3, num_verts, 0);
+	narr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_NORMAL, 3, num_verts, 0);
+	tarr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_TANGENT, 3, num_verts, 0);
+	uvarr = (cgm_vec2*)cmesh_set_attrib(mesh, CMESH_ATTR_TEXCOORD, 2, num_verts, 0);
+	idxarr = (unsigned int*)cmesh_set_index(mesh, num_tri * 3, 0);
 
-	float du = 1.0 / (float)usub;
-	float dv = 1.0 / (float)vsub;
+	du = 1.0f / (float)usub;
+	dv = 1.0f / (float)vsub;
 
-	float u = 0.0;
-	for(int i=0; i<uverts; i++) {
-		float v = 0.0;
-		for(int j=0; j<vverts; j++) {
-			float x = (u - 0.5) * width;
-			float y = (v - 0.5) * height;
-			float z = hf ? hf(u, v, hfdata) : 0.0;
+	u = 0.0f;
+	for(i=0; i<uverts; i++) {
+		v = 0.0;
+		for(j=0; j<vverts; j++) {
+			x = (u - 0.5) * width;
+			y = (v - 0.5) * height;
+			z = hf ? hf(u, v, hfdata) : 0.0;
 
-			Vec3 normal = Vec3(0, 0, 1);
+			cgm_vcons(&normal, 0, 0, 1);
 			if(hf) {
-				float u1z = hf(u + du, v, hfdata);
-				float v1z = hf(u, v + dv, hfdata);
+				u1z = hf(u + du, v, hfdata);
+				v1z = hf(u, v + dv, hfdata);
 
-				Vec3 tang = Vec3(du * width, 0, u1z - z);
-				Vec3 bitan = Vec3(0, dv * height, v1z - z);
-				normal = normalize(cross(tang, bitan));
+				cgm_vcons(&tang, du * width, 0, u1z - z);
+				cgm_vcons(&bitan, 0, dv * height, v1z - z);
+				cgm_vcross(&normal, &tang, &bitan);
+				cgm_vnormalize(&normal);
 			}
 
-			*varr++ = Vec3(x, y, z);
+			cgm_vcons(varr++, x, y, z);
 			*narr++ = normal;
-			*tarr++ = Vec3(1, 0, 0);
-			*uvarr++ = Vec2(u, v);
+			cgm_vcons(tarr++, 1, 0, 0);
+			uvarr->x = u;
+			uvarr->y = v;
+			uvarr++;
 
 			if(i < usub && j < vsub) {
-				int idx = i * vverts + j;
+				idx = i * vverts + j;
 
 				*idxarr++ = idx;
 				*idxarr++ = idx + vverts + 1;
@@ -623,7 +670,7 @@ void gen_heightmap(struct cmesh *mesh, float width, float height, int usub, int 
 	}
 }
 
-// ----- box ------
+/* ----- box ------ */
 void gen_box(struct cmesh *mesh, float xsz, float ysz, float zsz, int usub, int vsub)
 {
 	static const float face_angles[][2] = {
@@ -634,200 +681,116 @@ void gen_box(struct cmesh *mesh, float xsz, float ysz, float zsz, int usub, int 
 		{0, M_PI / 2.0},
 		{0, -M_PI / 2.0}
 	};
+	int i;
+	float xform[16], scale[16], idmat[16];
+	struct cmesh *m;
 
 	if(usub < 1) usub = 1;
 	if(vsub < 1) vsub = 1;
 
-	mesh->clear();
+	cmesh_clear(mesh);
 
-	for(int i=0; i<6; i++) {
-		Mat4 xform, dir_xform;
-		struct cmesh m;
+	for(i=0; i<6; i++) {
+		m = cmesh_alloc();
+		gen_plane(m, 1, 1, usub, vsub);
+		cgm_mtranslation(xform, 0, 0, 0.5f);
+		cgm_mrotate_euler(xform, face_angles[i][1], face_angles[i][0], 0.0f, CGM_EULER_XYZ);
+		cmesh_apply_xform(m, xform, 0);
 
-		gen_plane(&m, 1, 1, usub, vsub);
-		xform.translate(Vec3(0, 0, 0.5));
-		xform.rotate(Vec3(face_angles[i][1], face_angles[i][0], 0));
-		dir_xform = xform;
-		m.apply_xform(xform, dir_xform);
-
-		mesh->append(m);
+		cmesh_append(mesh, m);
+		cmesh_free(m);
 	}
 
-	Mat4 scale;
-	scale.scaling(xsz, ysz, zsz);
-	mesh->apply_xform(scale, Mat4::identity);
+	cgm_mscaling(scale, xsz, ysz, zsz);
+	cgm_midentity(idmat);
+	cmesh_apply_xform(mesh, scale, idmat);
 }
 
-/*
-void gen_box(struct cmesh *mesh, float xsz, float ysz, float zsz)
+
+static inline void rev_vert(cgm_vec3 *res, float u, float v, cgm_vec2 (*rf)(float, float, void*), void *cls)
 {
-	mesh->clear();
-
-	const int num_faces = 6;
-	int num_verts = num_faces * 4;
-	int num_tri = num_faces * 2;
-
-	float x = xsz / 2.0;
-	float y = ysz / 2.0;
-	float z = zsz / 2.0;
-
-	Vec3 *varr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_VERTEX, 3, num_verts, 0);
-	Vec3 *narr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_NORMAL, 3, num_verts, 0);
-	Vec3 *tarr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_TANGENT, 3, num_verts, 0);
-	Vec2 *uvarr = (Vec2*)mesh->set_attrib_data(MESH_ATTR_TEXCOORD, 2, num_verts, 0);
-	unsigned int *idxarr = mesh->set_index_data(num_tri * 3, 0);
-
-	static const Vec2 uv[] = { Vec2(0, 0), Vec2(1, 0), Vec2(1, 1), Vec2(0, 1) };
-
-	// front
-	for(int i=0; i<4; i++) {
-		*narr++ = Vec3(0, 0, 1);
-		*tarr++ = Vec3(1, 0, 0);
-		*uvarr++ = uv[i];
-	}
-	*varr++ = Vec3(-x, -y, z);
-	*varr++ = Vec3(x, -y, z);
-	*varr++ = Vec3(x, y, z);
-	*varr++ = Vec3(-x, y, z);
-	// right
-	for(int i=0; i<4; i++) {
-		*narr++ = Vec3(1, 0, 0);
-		*tarr++ = Vec3(0, 0, -1);
-		*uvarr++ = uv[i];
-	}
-	*varr++ = Vec3(x, -y, z);
-	*varr++ = Vec3(x, -y, -z);
-	*varr++ = Vec3(x, y, -z);
-	*varr++ = Vec3(x, y, z);
-	// back
-	for(int i=0; i<4; i++) {
-		*narr++ = Vec3(0, 0, -1);
-		*tarr++ = Vec3(-1, 0, 0);
-		*uvarr++ = uv[i];
-	}
-	*varr++ = Vec3(x, -y, -z);
-	*varr++ = Vec3(-x, -y, -z);
-	*varr++ = Vec3(-x, y, -z);
-	*varr++ = Vec3(x, y, -z);
-	// left
-	for(int i=0; i<4; i++) {
-		*narr++ = Vec3(-1, 0, 0);
-		*tarr++ = Vec3(0, 0, 1);
-		*uvarr++ = uv[i];
-	}
-	*varr++ = Vec3(-x, -y, -z);
-	*varr++ = Vec3(-x, -y, z);
-	*varr++ = Vec3(-x, y, z);
-	*varr++ = Vec3(-x, y, -z);
-	// top
-	for(int i=0; i<4; i++) {
-		*narr++ = Vec3(0, 1, 0);
-		*tarr++ = Vec3(1, 0, 0);
-		*uvarr++ = uv[i];
-	}
-	*varr++ = Vec3(-x, y, z);
-	*varr++ = Vec3(x, y, z);
-	*varr++ = Vec3(x, y, -z);
-	*varr++ = Vec3(-x, y, -z);
-	// bottom
-	for(int i=0; i<4; i++) {
-		*narr++ = Vec3(0, -1, 0);
-		*tarr++ = Vec3(1, 0, 0);
-		*uvarr++ = uv[i];
-	}
-	*varr++ = Vec3(-x, -y, -z);
-	*varr++ = Vec3(x, -y, -z);
-	*varr++ = Vec3(x, -y, z);
-	*varr++ = Vec3(-x, -y, z);
-
-	// index array
-	static const int faceidx[] = {0, 1, 2, 0, 2, 3};
-	for(int i=0; i<num_faces; i++) {
-		for(int j=0; j<6; j++) {
-			*idxarr++ = faceidx[j] + i * 4;
-		}
-	}
-}
-*/
-
-static inline Vec3 rev_vert(float u, float v, Vec2 (*rf)(float, float, void*), void *cls)
-{
-	Vec2 pos = rf(u, v, cls);
+	cgm_vec2 pos = rf(u, v, cls);
 
 	float angle = u * 2.0 * M_PI;
-	float x = pos.x * cos(angle);
-	float y = pos.y;
-	float z = pos.x * sin(angle);
-
-	return Vec3(x, y, z);
+	res->x = pos.x * cos(angle);
+	res->y = pos.y;
+	res->z = pos.x * sin(angle);
 }
 
-// ------ surface of revolution -------
-void gen_revol(struct cmesh *mesh, int usub, int vsub, Vec2 (*rfunc)(float, float, void*), void *cls)
+/* ------ surface of revolution ------- */
+void gen_revol(struct cmesh *mesh, int usub, int vsub, cgm_vec2 (*rfunc)(float, float, void*),
+		cgm_vec2 (*nfunc)(float, float, void*), void *cls)
 {
-	gen_revol(mesh, usub, vsub, rfunc, 0, cls);
-}
+	int i, j, uverts, vverts, num_verts, num_quads, num_tri, idx;
+	cgm_vec3 *varr, *narr, *tarr, pos, nextu, nextv, tang, normal, bitan;
+	cgm_vec2 *uvarr;
+	unsigned int *idxarr;
+	float u, v, du, dv, new_v;
 
-void gen_revol(struct cmesh *mesh, int usub, int vsub, Vec2 (*rfunc)(float, float, void*),
-		Vec2 (*nfunc)(float, float, void*), void *cls)
-{
 	if(!rfunc) return;
 	if(usub < 3) usub = 3;
 	if(vsub < 1) vsub = 1;
 
-	mesh->clear();
+	cmesh_clear(mesh);
 
-	int uverts = usub + 1;
-	int vverts = vsub + 1;
-	int num_verts = uverts * vverts;
+	uverts = usub + 1;
+	vverts = vsub + 1;
+	num_verts = uverts * vverts;
 
-	int num_quads = usub * vsub;
-	int num_tri = num_quads * 2;
+	num_quads = usub * vsub;
+	num_tri = num_quads * 2;
 
-	Vec3 *varr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_VERTEX, 3, num_verts, 0);
-	Vec3 *narr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_NORMAL, 3, num_verts, 0);
-	Vec3 *tarr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_TANGENT, 3, num_verts, 0);
-	Vec2 *uvarr = (Vec2*)mesh->set_attrib_data(MESH_ATTR_TEXCOORD, 2, num_verts, 0);
-	unsigned int *idxarr = mesh->set_index_data(num_tri * 3, 0);
+	varr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_VERTEX, 3, num_verts, 0);
+	narr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_NORMAL, 3, num_verts, 0);
+	tarr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_TANGENT, 3, num_verts, 0);
+	uvarr = (cgm_vec2*)cmesh_set_attrib(mesh, CMESH_ATTR_TEXCOORD, 2, num_verts, 0);
+	idxarr = (unsigned int*)cmesh_set_index(mesh, num_tri * 3, 0);
 
-	float du = 1.0 / (float)(uverts - 1);
-	float dv = 1.0 / (float)(vverts - 1);
+	du = 1.0f / (float)(uverts - 1);
+	dv = 1.0f / (float)(vverts - 1);
 
-	float u = 0.0;
-	for(int i=0; i<uverts; i++) {
-		float v = 0.0;
-		for(int j=0; j<vverts; j++) {
-			Vec3 pos = rev_vert(u, v, rfunc, cls);
+	u = 0.0f;
+	for(i=0; i<uverts; i++) {
+		v = 0.0f;
+		for(j=0; j<vverts; j++) {
+			rev_vert(&pos, u, v, rfunc, cls);
 
-			Vec3 nextu = rev_vert(fmod(u + du, 1.0), v, rfunc, cls);
-			Vec3 tang = nextu - pos;
-			if(length_sq(tang) < 1e-6) {
-				float new_v = v > 0.5 ? v - dv * 0.25 : v + dv * 0.25;
-				nextu = rev_vert(fmod(u + du, 1.0), new_v, rfunc, cls);
-				tang = nextu - pos;
+			rev_vert(&nextu, fmod(u + du, 1.0), v, rfunc, cls);
+			tang = nextu;
+			cgm_vsub(&tang, &pos);
+			if(cgm_vlength_sq(&tang) < 1e-6) {
+				new_v = v > 0.5f ? v - dv * 0.25f : v + dv * 0.25f;
+				rev_vert(&nextu, fmod(u + du, 1.0f), new_v, rfunc, cls);
+				tang = nextu;
+				cgm_vsub(&tang, &pos);
 			}
 
-			Vec3 normal;
 			if(nfunc) {
-				normal = rev_vert(u, v, nfunc, cls);
+				rev_vert(&normal, u, v, nfunc, cls);
 			} else {
-				Vec3 nextv = rev_vert(u, v + dv, rfunc, cls);
-				Vec3 bitan = nextv - pos;
-				if(length_sq(bitan) < 1e-6) {
-					nextv = rev_vert(u, v - dv, rfunc, cls);
-					bitan = pos - nextv;
+				rev_vert(&nextv, u, v + dv, rfunc, cls);
+				bitan = nextv;
+				cgm_vsub(&bitan, &pos);
+				if(cgm_vlength_sq(&bitan) < 1e-6f) {
+					rev_vert(&nextv, u, v - dv, rfunc, cls);
+					bitan = pos;
+					cgm_vsub(&bitan, &nextv);
 				}
 
-				normal = cross(tang, bitan);
+				cgm_vcross(&normal, &tang, &bitan);
 			}
+			cgm_vnormalize(&normal);
+			cgm_vnormalize(&tang);
 
 			*varr++ = pos;
-			*narr++ = normalize(normal);
-			*tarr++ = normalize(tang);
-			*uvarr++ = Vec2(u, v);
+			*narr++ = normal;
+			*tarr++ = tang;
+			uvarr->x = u;
+			uvarr->y = v;
+			uvarr++;
 
 			if(i < usub && j < vsub) {
-				int idx = i * vverts + j;
+				idx = i * vverts + j;
 
 				*idxarr++ = idx;
 				*idxarr++ = idx + vverts + 1;
@@ -844,74 +807,86 @@ void gen_revol(struct cmesh *mesh, int usub, int vsub, Vec2 (*rfunc)(float, floa
 	}
 }
 
-
-static inline Vec3 sweep_vert(float u, float v, float height, Vec2 (*sf)(float, float, void*), void *cls)
+static inline void sweep_vert(cgm_vec3 *res, float u, float v, float height,
+		cgm_vec2 (*sf)(float, float, void*), void *cls)
 {
-	Vec2 pos = sf(u, v, cls);
+	cgm_vec2 pos = sf(u, v, cls);
 
-	float x = pos.x;
-	float y = v * height;
-	float z = pos.y;
-
-	return Vec3(x, y, z);
+	res->x = pos.x;
+	res->y = v * height;
+	res->z = pos.y;
 }
 
-// ---- sweep shape along a path ----
-void gen_sweep(struct cmesh *mesh, float height, int usub, int vsub, Vec2 (*sfunc)(float, float, void*), void *cls)
+/* ---- sweep shape along a path ---- */
+void gen_sweep(struct cmesh *mesh, float height, int usub, int vsub,
+		cgm_vec2 (*sfunc)(float, float, void*), void *cls)
 {
+	int i, j, uverts, vverts, num_verts, num_quads, num_tri, idx;
+	cgm_vec3 *varr, *narr, *tarr, pos, nextu, nextv, tang, bitan, normal;
+	cgm_vec2 *uvarr;
+	unsigned int *idxarr;
+	float u, v, du, dv, new_v;
+
 	if(!sfunc) return;
 	if(usub < 3) usub = 3;
 	if(vsub < 1) vsub = 1;
 
-	mesh->clear();
+	cmesh_clear(mesh);
 
-	int uverts = usub + 1;
-	int vverts = vsub + 1;
-	int num_verts = uverts * vverts;
+	uverts = usub + 1;
+	vverts = vsub + 1;
+	num_verts = uverts * vverts;
 
-	int num_quads = usub * vsub;
-	int num_tri = num_quads * 2;
+	num_quads = usub * vsub;
+	num_tri = num_quads * 2;
 
-	Vec3 *varr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_VERTEX, 3, num_verts, 0);
-	Vec3 *narr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_NORMAL, 3, num_verts, 0);
-	Vec3 *tarr = (Vec3*)mesh->set_attrib_data(MESH_ATTR_TANGENT, 3, num_verts, 0);
-	Vec2 *uvarr = (Vec2*)mesh->set_attrib_data(MESH_ATTR_TEXCOORD, 2, num_verts, 0);
-	unsigned int *idxarr = mesh->set_index_data(num_tri * 3, 0);
+	varr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_VERTEX, 3, num_verts, 0);
+	narr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_NORMAL, 3, num_verts, 0);
+	tarr = (cgm_vec3*)cmesh_set_attrib(mesh, CMESH_ATTR_TANGENT, 3, num_verts, 0);
+	uvarr = (cgm_vec2*)cmesh_set_attrib(mesh, CMESH_ATTR_TEXCOORD, 2, num_verts, 0);
+	idxarr = (unsigned int*)cmesh_set_index(mesh, num_tri * 3, 0);
 
-	float du = 1.0 / (float)(uverts - 1);
-	float dv = 1.0 / (float)(vverts - 1);
+	du = 1.0f / (float)(uverts - 1);
+	dv = 1.0f / (float)(vverts - 1);
 
-	float u = 0.0;
-	for(int i=0; i<uverts; i++) {
-		float v = 0.0;
-		for(int j=0; j<vverts; j++) {
-			Vec3 pos = sweep_vert(u, v, height, sfunc, cls);
+	u = 0.0f;
+	for(i=0; i<uverts; i++) {
+		v = 0.0f;
+		for(j=0; j<vverts; j++) {
+			sweep_vert(&pos, u, v, height, sfunc, cls);
 
-			Vec3 nextu = sweep_vert(fmod(u + du, 1.0), v, height, sfunc, cls);
-			Vec3 tang = nextu - pos;
-			if(length_sq(tang) < 1e-6) {
-				float new_v = v > 0.5 ? v - dv * 0.25 : v + dv * 0.25;
-				nextu = sweep_vert(fmod(u + du, 1.0), new_v, height, sfunc, cls);
-				tang = nextu - pos;
+			sweep_vert(&nextu, fmod(u + du, 1.0), v, height, sfunc, cls);
+			tang = nextu;
+			cgm_vsub(&tang, &pos);
+			if(cgm_vlength_sq(&tang) < 1e-6f) {
+				new_v = v > 0.5f ? v - dv * 0.25f : v + dv * 0.25f;
+				sweep_vert(&nextu, fmod(u + du, 1.0f), new_v, height, sfunc, cls);
+				tang = nextu;
+				cgm_vsub(&tang, &pos);
 			}
 
-			Vec3 normal;
-			Vec3 nextv = sweep_vert(u, v + dv, height, sfunc, cls);
-			Vec3 bitan = nextv - pos;
-			if(length_sq(bitan) < 1e-6) {
-				nextv = sweep_vert(u, v - dv, height, sfunc, cls);
-				bitan = pos - nextv;
+			sweep_vert(&nextv, u, v + dv, height, sfunc, cls);
+			bitan = nextv;
+			cgm_vsub(&bitan, &pos);
+			if(cgm_vlength_sq(&bitan) < 1e-6f) {
+				sweep_vert(&nextv, u, v - dv, height, sfunc, cls);
+				bitan = pos;
+				cgm_vsub(&bitan, &nextv);
 			}
 
-			normal = cross(tang, bitan);
+			cgm_vcross(&normal, &tang, &bitan);
+			cgm_vnormalize(&normal);
+			cgm_vnormalize(&tang);
 
 			*varr++ = pos;
-			*narr++ = normalize(normal);
-			*tarr++ = normalize(tang);
-			*uvarr++ = Vec2(u, v);
+			*narr++ = normal;
+			*tarr++ = tang;
+			uvarr->x = u;
+			uvarr->y = v;
+			uvarr++;
 
 			if(i < usub && j < vsub) {
-				int idx = i * vverts + j;
+				idx = i * vverts + j;
 
 				*idxarr++ = idx;
 				*idxarr++ = idx + vverts + 1;
@@ -927,4 +902,3 @@ void gen_sweep(struct cmesh *mesh, float height, int usub, int vsub, Vec2 (*sfun
 		u += du;
 	}
 }
-#endif

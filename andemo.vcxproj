@@ -36,8 +36,12 @@
     <ClCompile Include="src\sanegl.c" />
     <ClCompile Include="src\scr\testa.c" />
     <ClCompile Include="src\scr\testb.c" />
+    <ClCompile Include="src\scr\darktun.c" />
     <ClCompile Include="src\sdr.c" />
     <ClCompile Include="src\util.c" />
+    <ClCompile Include="src\cmesh.c" />
+    <ClCompile Include="src\meshload.c" />
+    <ClCompile Include="src\meshgen.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\assfile.h" />
@@ -54,6 +58,8 @@
     <ClInclude Include="src\sanegl.h" />
     <ClInclude Include="src\sdr.h" />
     <ClInclude Include="src\util.h" />
+    <ClInclude Include="src\cmesh.h" />
+    <ClInclude Include="src\meshgen.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

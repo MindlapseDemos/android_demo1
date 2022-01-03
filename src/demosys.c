@@ -8,6 +8,7 @@
 #include "darray.h"
 #include "music.h"
 
+void regscr_darktun(void);
 void regscr_testa(void);
 void regscr_testb(void);
 
@@ -35,6 +36,7 @@ int dsys_init(const char *fname)
 
 	dsys.ev = darr_alloc(0, sizeof *dsys.ev);
 
+	regscr_darktun();
 	regscr_testa();
 	regscr_testb();
 

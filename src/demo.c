@@ -5,8 +5,7 @@
 #include "assman.h"
 #include "demosys.h"
 #include "music.h"
-
-unsigned int sdr_dbg;
+#include "cmesh.h"
 
 static unsigned int sdr_foo;
 static unsigned int tex_logo;
@@ -24,6 +23,7 @@ int demo_init(void)
 	if(!(sdr_dbg = get_sdrprog("sdr/dbg.v.glsl", "sdr/dbg.p.glsl"))) {
 		return -1;
 	}
+	cmesh_bind_sdrloc(sdr_dbg);
 
 	if(!(sdr_foo = get_sdrprog("sdr/foo.v.glsl", "sdr/foo.p.glsl"))) {
 		return -1;
@@ -57,6 +57,9 @@ int demo_init(void)
 			fprintf(stderr, "ignoring screen option, no such screen: %s\n", opt.scrname);
 		}
 	}
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	if(opt.music) {
 		if(init_music() == -1) {
@@ -102,6 +105,9 @@ void demo_reshape(int x, int y)
 	int i;
 
 	glViewport(0, 0, x, y);
+	win_width = x;
+	win_height = y;
+	win_aspect = (float)x / (float)y;
 
 	for(i=0; i<dsys.num_screens; i++) {
 		if(dsys.screens[i]->reshape) {
