@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include "cgmath/cgmath.h"
 
 #include "opengl.h"
 
@@ -30,8 +31,8 @@ static float mat_mvp[16];
 static int mvp_valid;
 static int prim = -1;
 
-static vec3_t cur_normal;
-static vec4_t cur_color, cur_attrib;
+static vec3_t cur_normal = {0, 0, 1};
+static vec4_t cur_color = {1, 1, 1, 1}, cur_attrib;
 static vec2_t cur_texcoord;
 
 static vec4_t *vert_arr, *col_arr, *attr_arr;
@@ -252,7 +253,8 @@ void gl_apply_xform(unsigned int prog)
 
 	if((loc = glGetUniformLocation(prog, "matrix_modelview_projection")) != -1) {
 		if(!mvp_valid) {
-			/* TODO calc mvp */
+			cgm_mcopy(mat_mvp, mat_stack[pidx][ptop]);
+			cgm_mmul(mat_mvp, mat_stack[mvidx][mvtop]);
 		}
 		glUniformMatrix4fv(loc, 1, 0, mat_mvp);
 	}

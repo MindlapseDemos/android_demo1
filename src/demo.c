@@ -6,6 +6,8 @@
 #include "demosys.h"
 #include "music.h"
 
+unsigned int sdr_dbg;
+
 static unsigned int sdr_foo;
 static unsigned int tex_logo;
 static int mute;
@@ -19,6 +21,10 @@ int demo_init(void)
 		return -1;
 	}
 
+	if(!(sdr_dbg = get_sdrprog("sdr/dbg.v.glsl", "sdr/dbg.p.glsl"))) {
+		return -1;
+	}
+
 	if(!(sdr_foo = get_sdrprog("sdr/foo.v.glsl", "sdr/foo.p.glsl"))) {
 		return -1;
 	}
@@ -28,6 +34,7 @@ int demo_init(void)
 	glBindTexture(GL_TEXTURE_2D, tex_logo);
 	glUseProgram(sdr_foo);
 	gl_begin(GL_QUADS);
+	gl_color3f(1, 1, 1);
 	gl_texcoord2f(0, 1);
 	gl_vertex2f(-1, -1);
 	gl_texcoord2f(1, 1);
@@ -74,26 +81,9 @@ void demo_display(void)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glBindTexture(GL_TEXTURE_2D, tex_logo);
-	glUseProgram(sdr_foo);
-	gl_begin(GL_QUADS);
-	gl_color4f(1, 1, 1, dsys_value("flashlogo"));
-	gl_texcoord2f(0, 1);
-	gl_vertex2f(-1, -1);
-	gl_texcoord2f(1, 1);
-	gl_vertex2f(1, -1);
-	gl_texcoord2f(1, 0);
-	gl_vertex2f(1, 1);
-	gl_texcoord2f(0, 0);
-	gl_vertex2f(-1, 1);
-	gl_end();
-	glDisable(GL_BLEND);
-
 	dsys_draw();
 
+	/*
 	glBindTexture(GL_TEXTURE_2D, tex_logo);
 	glUseProgram(sdr_foo);
 	gl_begin(GL_QUADS);
@@ -104,6 +94,7 @@ void demo_display(void)
 	gl_vertex2f(dsys.t * 2.0f - 1.0f, 1);
 	gl_vertex2f(-1, 1);
 	gl_end();
+	*/
 }
 
 void demo_reshape(int x, int y)

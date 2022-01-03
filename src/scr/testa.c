@@ -35,6 +35,7 @@ static void draw(void)
 
 	glUseProgram(sdr_foo);
 	gl_begin(GL_QUADS);
+	gl_color3f(1, 1, 1);
 	for(i=0; i<16; i++) {
 		float x0 = i / 8.0f - 1.0f + gap;
 		float x1 = (i + 1) / 8.0f - 1.0f - gap;
