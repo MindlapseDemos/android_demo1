@@ -24,6 +24,11 @@ void cmesh_set_attrib_sdrloc(int attr, int loc);
 int cmesh_get_attrib_sdrloc(int attr);
 void cmesh_clear_attrib_sdrloc(void);
 
+/* cmesh_bind_sdrloc will bind default attribute names (if they exist in the
+ * shader program) to locations used by cmesh_draw:
+ *   attr_vertex, attr_normal, attr_tangent, attr_texcoord, attr_color,
+ *   attr_boneweights, attr_boneidx, attr_texcoord2
+ */
 void cmesh_bind_sdrloc(unsigned int sdr);
 
 /* mesh functions */

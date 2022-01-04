@@ -20,6 +20,7 @@ int demo_init(void)
 		return -1;
 	}
 
+	/* global "debug" shader which just visualizes normals */
 	if(!(sdr_dbg = get_sdrprog("sdr/dbg.v.glsl", "sdr/dbg.p.glsl"))) {
 		return -1;
 	}

@@ -2,12 +2,18 @@
 #include "cmesh.h"
 #include "meshgen.h"
 
+#define TILE_SZ	3
+
 static int init(void);
 static void destroy(void);
 static void draw(void);
 
 static struct demoscreen scr = {"darktun", init, destroy, 0, 0, 0, 0, draw};
-static struct cmesh *mesh;
+
+enum { TILE_STR, TILE_LTURN, TILE_RTURN, TILE_TEE, NUM_TILES };
+static const char *tile_files[NUM_TILES] = { "data/dtun_str.obj",
+	"data/dtun_lturn.obj", "data/dtun_rturn.obj", "data/dtun_tee.obj" };
+static struct cmesh *tiles[NUM_TILES];
 
 void regscr_darktun(void)
 {
@@ -16,14 +22,25 @@ void regscr_darktun(void)
 
 static int init(void)
 {
-	mesh = cmesh_alloc();
-	gen_torus(mesh, 3.0f, 1.0f, 20, 8, 1.0f, 1.0f);
+	int i;
+
+	for(i=0; i<NUM_TILES; i++) {
+		tiles[i] = cmesh_alloc();
+		if(cmesh_load(tiles[i], tile_files[i]) == -1) {
+			fprintf(stderr, "darktun: failed to load tile mesh: %s\n", tile_files[i]);
+			return -1;
+		}
+	}
+
 	return 0;
 }
 
 static void destroy(void)
 {
-	cmesh_free(mesh);
+	int i;
+	for(i=0; i<NUM_TILES; i++) {
+		cmesh_free(tiles[i]);
+	}
 }
 
 static void draw(void)
@@ -40,5 +57,5 @@ static void draw(void)
 
 	glUseProgram(sdr_dbg);
 	gl_apply_xform(sdr_dbg);
-	cmesh_draw(mesh);
+	cmesh_draw(tiles[3]);
 }
