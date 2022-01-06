@@ -24,6 +24,9 @@ static char *clean_line(char *s);
 static char *parse_face_vert(char *ptr, struct facevertex *fv, int numv, int numt, int numn);
 static int cmp_facevert(const void *ap, const void *bp);
 static void free_rbnode_key(struct rbnode *n, void *cls);
+static void clear_mtl(struct cmesh_material *mtl);
+static void clone_mtl(struct cmesh_material *dest, struct cmesh_material *src);
+
 
 /* merge of different indices per attribute happens during face processing.
  *
@@ -38,7 +41,7 @@ static void free_rbnode_key(struct rbnode *n, void *cls);
  */
 int cmesh_load(struct cmesh *mesh, const char *fname)
 {
-	int i, line_num = 0, result = -1;
+	int i, subidx, line_num = 0, result = -1;
 	int found_quad = 0;
 	ass_file *fp = 0;
 	char buf[256], *dirname, *endp;
@@ -48,8 +51,11 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 	struct rbtree *rbtree = 0;
 	char *subname = 0;
 	int substart = 0, subcount = 0;
-	struct cmesh_material *mtllib;
+	struct cmesh_material *mtllib = 0, *curmtl, defmtl;
 	int num_mtl;
+
+	curmtl = &defmtl;
+	defmtl = *cmesh_material(mesh);
 
 	if(!(fp = ass_fopen(fname, "rb"))) {
 		fprintf(stderr, "load_mesh: failed to open file: %s\n", fname);
@@ -79,10 +85,6 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 		++line_num;
 
 		if(!*line) continue;
-
-		if(memcmp(line, "mtllib", 6) == 0) {
-			mtllib = load_mtllib(line + 7, dirname, &num_mtl);
-		}
 
 		switch(line[0]) {
 		case 'v':
@@ -180,7 +182,9 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 		case 'o':
 			if(subcount > 0) {
 				printf("adding submesh: %s\n", subname);
+				subidx = cmesh_submesh_count(mesh);
 				cmesh_submesh(mesh, subname, substart / 3, subcount / 3);
+				clone_mtl(cmesh_submesh_material(mesh, subidx), curmtl);
 			}
 			free(subname);
 			if((subname = malloc(strlen(line)))) {
@@ -190,10 +194,35 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 			subcount = 0;
 			break;
 
+		case 'm':
+			if(memcmp(line, "mtllib", 6) == 0 && (line = clean_line(line + 6))) {
+				int num;
+				void *tmp = load_mtllib(line, dirname, &num);
+				if(tmp) {
+					free(mtllib);
+					mtllib = tmp;
+					num_mtl = num;
+				}
+			}
+			break;
+
+		case 'u':
+			if(memcmp(line, "usemtl", 6) == 0 && mtllib && (line = clean_line(line + 6))) {
+				for(i=0; i<num_mtl; i++) {
+					if(strcmp(mtllib[i].name, line) == 0) {
+						curmtl = mtllib + i;
+						break;
+					}
+				}
+			}
+			break;
+
 		default:
 			break;
 		}
 	}
+
+	clone_mtl(cmesh_material(mesh), curmtl);
 
 	if(subcount > 0) {
 		/* don't add the final submesh if we never found another. an obj file with a
@@ -201,7 +230,9 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 		 */
 		if(cmesh_submesh_count(mesh) > 0) {
 			printf("adding submesh: %s\n", subname);
+			subidx = cmesh_submesh_count(mesh);
 			cmesh_submesh(mesh, subname, substart / 3, subcount / 3);
+			clone_mtl(cmesh_submesh_material(mesh, subidx), curmtl);
 		} else {
 			/* ... but use the 'o' name as the name of the mesh instead of the filename */
 			if(subname && *subname) {
@@ -222,7 +253,12 @@ err:
 	darr_free(narr);
 	darr_free(tarr);
 	rb_free(rbtree);
-	free(mtllib);
+	if(mtllib) {
+		for(i=0; i<num_mtl; i++) {
+			clear_mtl(mtllib + i);
+		}
+		free(mtllib);
+	}
 	free(subname);
 	return result;
 }
@@ -232,7 +268,7 @@ static struct cmesh_material *load_mtllib(const char *fname, const char *dirname
 	int line_num = 0;
 	ass_file *fp;
 	char buf[256], *pathbuf;
-	struct cmesh_material *mtllib;
+	struct cmesh_material *mtllib, *mtl = 0;
 
 	if(dirname) {
 		pathbuf = alloca(strlen(fname) + strlen(dirname) + 2);
@@ -253,7 +289,43 @@ static struct cmesh_material *load_mtllib(const char *fname, const char *dirname
 
 		if(!line || !*line) continue;
 
-		/* TODO */
+		if(memcmp(line, "newmtl", 6) == 0 && (line = clean_line(line + 6))) {
+			darr_push(mtllib, 0);
+			mtl = mtllib + darr_size(mtllib) - 1;
+			memset(mtl, 0, sizeof *mtl);
+			mtl->name = strdup_nf(line);
+
+		} else if(memcmp(line, "Kd", 2) == 0) {
+			if(mtl) sscanf(line + 3, "%f %f %f", &mtl->color.x, &mtl->color.y, &mtl->color.z);
+		} else if(memcmp(line, "Ks", 2) == 0) {
+			if(mtl) sscanf(line + 3, "%f %f %f", &mtl->specular.x, &mtl->specular.y, &mtl->specular.z);
+		} else if(memcmp(line, "Ke", 2) == 0) {
+			if(mtl) sscanf(line + 3, "%f %f %f", &mtl->emissive.x, &mtl->emissive.y, &mtl->emissive.z);
+		} else if(memcmp(line, "Ns", 2) == 0) {
+			if(mtl) mtl->roughness = atof(line + 2);
+		} else if(memcmp(line, "Ni", 2) == 0) {
+			if(mtl) mtl->ior = atof(line + 3);
+		} else if(line[0] == 'd' && isspace(line[1])) {
+			if(mtl) mtl->alpha = atof(line + 2);
+		} else if(memcmp(line, "map_Kd", 6) == 0) {
+			if(mtl && (line = clean_line(line + 6))) {
+				mtl->texmap = strdup_nf(line);
+			}
+		} else if(memcmp(line, "map_Ke", 6) == 0) {
+			if(mtl && (line = clean_line(line + 6))) {
+				mtl->lightmap = strdup_nf(line);
+			}
+		} else if(memcmp(line, "map_bump", 8) == 0 || memcmp(line, "bump", 4) == 0) {
+			while(*line && !isspace(*line)) line++;
+			if(mtl && (line = clean_line(line))) {
+				mtl->bumpmap = strdup_nf(line);
+			}
+		} else if(memcmp(line, "refl", 4) == 0) {
+			if(mtl && (line = clean_line(line))) {
+				/* TODO: support -type */
+				mtl->reflmap = strdup_nf(line);
+			}
+		}
 	}
 
 	if(darr_empty(mtllib)) {
@@ -262,7 +334,7 @@ static struct cmesh_material *load_mtllib(const char *fname, const char *dirname
 	}
 
 	*num_mtl = darr_size(mtllib);
-	darr_finalize(mtllib);
+	mtllib = darr_finalize(mtllib);
 	return mtllib;
 }
 
@@ -342,4 +414,27 @@ static int cmp_facevert(const void *ap, const void *bp)
 static void free_rbnode_key(struct rbnode *n, void *cls)
 {
 	free(n->key);
+}
+
+
+static void clear_mtl(struct cmesh_material *mtl)
+{
+	if(!mtl) return;
+	free(mtl->name);
+	free(mtl->texmap);
+	free(mtl->specmap);
+	free(mtl->reflmap);
+	free(mtl->bumpmap);
+	free(mtl->lightmap);
+}
+
+static void clone_mtl(struct cmesh_material *dest, struct cmesh_material *src)
+{
+	*dest = *src;
+	if(src->name) dest->name = strdup_nf(src->name);
+	if(src->texmap) dest->texmap = strdup_nf(src->texmap);
+	if(src->specmap) dest->specmap = strdup_nf(src->specmap);
+	if(src->reflmap) dest->reflmap = strdup_nf(src->reflmap);
+	if(src->bumpmap) dest->bumpmap = strdup_nf(src->bumpmap);
+	if(src->lightmap) dest->lightmap = strdup_nf(src->lightmap);
 }

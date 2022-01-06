@@ -80,7 +80,9 @@ static int def_nelem[CMESH_NUM_ATTR] = {3, 3, 3, 2, 4, 4, 4, 2};
 static int sdr_loc[CMESH_NUM_ATTR] = {0, 1, 2, 3, 4, 5, 6, 7};
 static int use_custom_sdr_attr;
 
-static const struct cmesh_material defmtl = {0, {1, 1, 1}, {0, 0, 0}, 1, 1, 0};
+static const struct cmesh_material defmtl = {
+	0, {1, 1, 1}, {0, 0, 0}, {0, 0, 0}, 1, 1, 1, 0
+};
 
 
 /* global state */
@@ -1576,6 +1578,7 @@ static void clear_mtl(struct cmesh_material *mtl)
 	free(mtl->specmap);
 	free(mtl->reflmap);
 	free(mtl->bumpmap);
+	free(mtl->lightmap);
 	*mtl = defmtl;
 }
 
@@ -1587,4 +1590,5 @@ static void clone_mtl(struct cmesh_material *dest, struct cmesh_material *src)
 	if(src->specmap) dest->specmap = strdup_nf(src->specmap);
 	if(src->reflmap) dest->reflmap = strdup_nf(src->reflmap);
 	if(src->bumpmap) dest->bumpmap = strdup_nf(src->bumpmap);
+	if(src->lightmap) dest->lightmap = strdup_nf(src->lightmap);
 }

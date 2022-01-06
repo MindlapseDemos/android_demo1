@@ -21,12 +21,13 @@ struct cmesh;
 
 struct cmesh_material {
 	char *name;
-	cgm_vec3 color, specular;
+	cgm_vec3 color, specular, emissive;
 	float alpha;
-	float roughness;
+	float roughness, ior;
 	char *texmap, *specmap;
 	char *reflmap;
 	char *bumpmap;
+	char *lightmap;
 };
 
 /* global state */
