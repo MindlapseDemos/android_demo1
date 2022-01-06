@@ -180,8 +180,8 @@ void gl_apply_xform(unsigned int prog)
 
 	if((loc = glGetUniformLocation(prog, "matrix_modelview_projection")) != -1) {
 		if(!mvp_valid) {
-			cgm_mcopy(mat_mvp, mat_stack[pidx][ptop]);
-			cgm_mmul(mat_mvp, mat_stack[mvidx][mvtop]);
+			cgm_mcopy(mat_mvp, mat_stack[mvidx][mvtop]);
+			cgm_mmul(mat_mvp, mat_stack[pidx][ptop]);
 		}
 		glUniformMatrix4fv(loc, 1, 0, mat_mvp);
 	}

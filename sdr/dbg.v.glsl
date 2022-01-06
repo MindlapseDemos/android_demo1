@@ -8,7 +8,6 @@ varying vec3 normal;
 
 void main()
 {
-	mat4 mvp = matrix_projection * matrix_modelview;
-	gl_Position = mvp * attr_vertex;
+	gl_Position = matrix_modelview_projection * attr_vertex;
 	normal = matrix_normal * attr_normal;
 }
