@@ -893,7 +893,6 @@ static float *get_vec3(struct cmesh *cm, int attr, int idx, cgm_vec3 *res)
 	return sptr;
 }
 
-/* dir_xform can be null, in which case it's calculated from xform */
 void cmesh_apply_xform(struct cmesh *cm, float *xform, float *dir_xform)
 {
 	unsigned int i;
@@ -901,6 +900,8 @@ void cmesh_apply_xform(struct cmesh *cm, float *xform, float *dir_xform)
 	cgm_vec4 v;
 	cgm_vec3 n, t;
 	float *vptr;
+
+	if(!dir_xform) dir_xform = xform;
 
 	for(i=0; i<cm->nverts; i++) {
 		if(!(vptr = get_vec4(cm, CMESH_ATTR_VERTEX, i, &v))) {

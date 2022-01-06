@@ -88,126 +88,53 @@ void gl_load_matrixf(const float *m)
 
 void gl_mult_matrixf(const float *m2)
 {
-	int i, j;
 	int top = stack_top[mm_idx];
 	float *m1 = mat_stack[mm_idx][top];
-	float res[16];
 
-	for(i=0; i<4; i++) {
-		for(j=0; j<4; j++) {
-			res[M(i,j)] = m1[M(i,0)] * m2[M(0,j)] +
-						m1[M(i,1)] * m2[M(1,j)] +
-						m1[M(i,2)] * m2[M(2,j)] +
-						m1[M(i,3)] * m2[M(3,j)];
-		}
-	}
-
-	memcpy(m1, res, sizeof res);
+	cgm_mpremul(m1, m2);
 	mvp_valid = 0;
 }
 
 void gl_translatef(float x, float y, float z)
 {
-	float mat[] = MAT_IDENT;
-
-	mat[12] = x;
-	mat[13] = y;
-	mat[14] = z;
-
+	float mat[16];
+	cgm_mtranslation(mat, x, y, z);
 	gl_mult_matrixf(mat);
 }
 
 void gl_rotatef(float angle, float x, float y, float z)
 {
-	float mat[] = MAT_IDENT;
-
-	float angle_rad = M_PI * angle / 180.0;
-	float sina = sin(angle_rad);
-	float cosa = cos(angle_rad);
-	float one_minus_cosa = 1.0 - cosa;
-	float nxsq = x * x;
-	float nysq = y * y;
-	float nzsq = z * z;
-
-	mat[0] = nxsq + (1.0 - nxsq) * cosa;
-	mat[4] = x * y * one_minus_cosa - z * sina;
-	mat[8] = x * z * one_minus_cosa + y * sina;
-	mat[1] = x * y * one_minus_cosa + z * sina;
-	mat[5] = nysq + (1.0 - nysq) * cosa;
-	mat[9] = y * z * one_minus_cosa - x * sina;
-	mat[2] = x * z * one_minus_cosa - y * sina;
-	mat[6] = y * z * one_minus_cosa + x * sina;
-	mat[10] = nzsq + (1.0 - nzsq) * cosa;
-
+	float mat[16];
+	cgm_mrotation(mat, cgm_deg_to_rad(angle), x, y, z);
 	gl_mult_matrixf(mat);
 }
 
 void gl_scalef(float x, float y, float z)
 {
-	float mat[] = MAT_IDENT;
-
-	mat[0] = x;
-	mat[5] = y;
-	mat[10] = z;
-
+	float mat[16];
+	cgm_mscaling(mat, x, y, z);
 	gl_mult_matrixf(mat);
 }
 
 void gl_ortho(float left, float right, float bottom, float top, float znear, float zfar)
 {
-	float mat[] = MAT_IDENT;
-
-	float dx = right - left;
-	float dy = top - bottom;
-	float dz = zfar - znear;
-
-	float tx = -(right + left) / dx;
-	float ty = -(top + bottom) / dy;
-	float tz = -(zfar + znear) / dz;
-
-	float sx = 2.0 / dx;
-	float sy = 2.0 / dy;
-	float sz = -2.0 / dz;
-
-	mat[0] = sx;
-	mat[5] = sy;
-	mat[10] = sz;
-	mat[12] = tx;
-	mat[13] = ty;
-	mat[14] = tz;
-
+	float mat[16];
+	cgm_mortho(mat, left, right, bottom, top, znear, zfar);
 	gl_mult_matrixf(mat);
 }
 
 void gl_frustum(float left, float right, float bottom, float top, float znear, float zfar)
 {
-	float mat[] = MAT_IDENT;
-
-	float dx = right - left;
-	float dy = top - bottom;
-	float dz = zfar - znear;
-
-	float a = (right + left) / dx;
-	float b = (top + bottom) / dy;
-	float c = -(zfar + znear) / dz;
-	float d = -2.0 * zfar * znear / dz;
-
-	mat[0] = 2.0 * znear / dx;
-	mat[5] = 2.0 * znear / dy;
-	mat[8] = a;
-	mat[9] = b;
-	mat[10] = c;
-	mat[11] = -1.0;
-	mat[14] = d;
-
+	float mat[16];
+	cgm_mfrustum(mat, left, right, bottom, top, znear, zfar);
 	gl_mult_matrixf(mat);
 }
 
 void glu_perspective(float vfov, float aspect, float znear, float zfar)
 {
-	float vfov_rad = M_PI * vfov / 180.0;
-	float x = znear * tan(vfov_rad / 2.0);
-	gl_frustum(-aspect * x, aspect * x, -x, x, znear, zfar);
+	float mat[16];
+	cgm_mperspective(mat, cgm_deg_to_rad(vfov), aspect, znear, zfar);
+	gl_mult_matrixf(mat);
 }
 
 void gl_apply_xform(unsigned int prog)
