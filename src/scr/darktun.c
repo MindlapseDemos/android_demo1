@@ -5,7 +5,7 @@
 
 #define TILE_SZ	6.0f
 #define SEQ_SZ	32
-#define INTERV	1000
+#define INTERV	1500
 
 static int init(void);
 static void destroy(void);
@@ -34,7 +34,7 @@ static float next_xform[NUM_TILES][16];
 
 static int seq[SEQ_SZ];
 
-static float cam_theta, cam_phi, cam_dist = 10;
+static float cam_theta, cam_phi, cam_dist;
 
 
 void regscr_darktun(void)
@@ -95,20 +95,42 @@ static int cur_seq_pos;
 static void draw(void)
 {
 	int i, tid, spos;
+	long tm;
+	float t, rot;
+	cgm_vec3 p, pend;
+	static const cgm_vec3 zero, cent = {0, 0, TILE_SZ / 2};
 
 	gl_matrix_mode(GL_PROJECTION);
 	gl_load_identity();
-	glu_perspective(50.0f, win_aspect, 0.5f, 500.0f);
+	glu_perspective(60.0f, win_aspect, 0.5f, 500.0f);
 
 	gl_matrix_mode(GL_MODELVIEW);
 	gl_load_identity();
 	gl_translatef(0, 0, -cam_dist);
 	gl_rotatef(cam_phi, 1, 0, 0);
 	gl_rotatef(cam_theta, 0, 1, 0);
+	gl_translatef(0, -0.8, 0);
 
 	glUseProgram(sdr_dbg);
 
-	cur_seq_pos = (dsys.tmsec - scr.start_time) / INTERV % SEQ_SZ;
+	tm = dsys.tmsec - scr.start_time;
+	cur_seq_pos = tm / INTERV % SEQ_SZ;
+	t = (float)(tm % INTERV) / INTERV;
+
+	if(t < 0.5f) {
+		cgm_vlerp(&p, &zero, &cent, t * 2.0f);
+	} else {
+		t = (t - 0.5f) * 2.0f;
+		pend = nextpos[seq[cur_seq_pos]];
+		cgm_vcons(&pend, -pend.x, -pend.y, -pend.z);
+		cgm_vlerp(&p, &cent, &pend, t);
+
+		t *= 3.0f;
+		rot = -nextrot[seq[cur_seq_pos]] * (t > 1.0f ? 1.0f : t);
+		gl_rotatef(rot, 0, 1, 0);
+	}
+	gl_translatef(p.x, p.y, p.z);
+
 	spos = cur_seq_pos;
 	for(i=0; i<3; i++) {
 		tid = seq[spos];
