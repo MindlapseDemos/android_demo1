@@ -27,6 +27,7 @@ struct submesh {
 	int nfaces;	/* derived from either icount or vcount */
 	int istart, icount;
 	int vstart, vcount;
+	struct cmesh_material mtl;
 	struct submesh *next;
 };
 
@@ -36,6 +37,8 @@ struct cmesh {
 
 	struct submesh *sublist;
 	int subcount;
+
+	struct cmesh_material mtl;
 
 	/* current value for each attribute for the immediate mode interface */
 	cgm_vec4 cur_val[CMESH_NUM_ATTR];
@@ -69,11 +72,15 @@ static void update_buffers(struct cmesh *cm);
 static void update_wire_ibo(struct cmesh *cm);
 static void calc_aabb(struct cmesh *cm);
 static void calc_bsph(struct cmesh *cm);
+static void clear_mtl(struct cmesh_material *mtl);
+static void clone_mtl(struct cmesh_material *dest, struct cmesh_material *src);
 
 static int def_nelem[CMESH_NUM_ATTR] = {3, 3, 3, 2, 4, 4, 4, 2};
 
 static int sdr_loc[CMESH_NUM_ATTR] = {0, 1, 2, 3, 4, 5, 6, 7};
 static int use_custom_sdr_attr;
+
+static const struct cmesh_material defmtl = {0, {1, 1, 1}, {0, 0, 0}, 1, 1, 0};
 
 
 /* global state */
@@ -141,6 +148,8 @@ int cmesh_init(struct cmesh *cm)
 	}
 
 	cm->ibo = cm->buffer_objects[CMESH_NUM_ATTR];
+
+	cm->mtl = defmtl;
 	return 0;
 }
 
@@ -161,6 +170,8 @@ void cmesh_destroy(struct cmesh *cm)
 	if(cm->wire_ibo) {
 		glDeleteBuffers(1, &cm->wire_ibo);
 	}
+
+	clear_mtl(&cm->mtl);
 }
 
 void cmesh_clear(struct cmesh *cm)
@@ -186,6 +197,7 @@ void cmesh_clear(struct cmesh *cm)
 	cm->bsph_valid = cm->aabb_valid = 0;
 
 	cmesh_clear_submeshes(cm);
+	clear_mtl(&cm->mtl);
 }
 
 int cmesh_clone(struct cmesh *cmdest, struct cmesh *cmsrc)
@@ -200,10 +212,7 @@ static int clone(struct cmesh *cmdest, struct cmesh *cmsrc, struct submesh *sub)
 	float *varr[CMESH_NUM_ATTR] = {0};
 	float *vptr;
 	unsigned int *iptr, *iarr = 0;
-
-	/* try do anything that can fail first, before making any changes to cmdest
-	 * so we have the option of recovering gracefuly
-	 */
+	struct cmesh_material mtl;
 
 	srcname = sub ? sub->name : cmsrc->name;
 	if(srcname) {
@@ -225,6 +234,8 @@ static int clone(struct cmesh *cmdest, struct cmesh *cmsrc, struct submesh *sub)
 	if(cmesh_indexed(cmsrc)) {
 		iarr = malloc_nf(icount * sizeof *iarr);
 	}
+
+	clone_mtl(&mtl, sub ? &sub->mtl : &cmsrc->mtl);
 
 	for(i=0; i<CMESH_NUM_ATTR; i++) {
 		if(cmesh_has_attrib(cmsrc, i)) {
@@ -329,6 +340,21 @@ int cmesh_set_name(struct cmesh *cm, const char *name)
 const char *cmesh_name(struct cmesh *cm)
 {
 	return cm->name;
+}
+
+struct cmesh_material *cmesh_material(struct cmesh *cm)
+{
+	return &cm->mtl;
+}
+
+struct cmesh_material *cmesh_submesh_material(struct cmesh *cm, int subidx)
+{
+	struct submesh *sm = cm->sublist;
+
+	while(sm && subidx-- > 0) {
+		sm = sm->next;
+	}
+	return sm ? &sm->mtl : 0;
 }
 
 int cmesh_has_attrib(struct cmesh *cm, int attr)
@@ -682,6 +708,7 @@ void cmesh_clear_submeshes(struct cmesh *cm)
 		sm = cm->sublist;
 		cm->sublist = cm->sublist->next;
 		free(sm->name);
+		clear_mtl(&sm->mtl);
 		free(sm);
 	}
 	cm->subcount = 0;
@@ -701,6 +728,7 @@ int cmesh_submesh(struct cmesh *cm, const char *name, int fstart, int fcount)
 	sm = malloc_nf(sizeof *sm);
 	sm->name = strdup_nf(name);
 	sm->nfaces = fcount;
+	clone_mtl(&sm->mtl, &cm->mtl);
 
 	if(cmesh_indexed(cm)) {
 		sm->istart = fstart * 3;
@@ -747,6 +775,7 @@ int cmesh_remove_submesh(struct cmesh *cm, int idx)
 
 	prev->next = sm->next;
 	free(sm->name);
+	clear_mtl(&sm->mtl);
 	free(sm);
 
 	cm->subcount--;
@@ -1537,4 +1566,25 @@ int cmesh_dump_obj_file(struct cmesh *cm, FILE *fp, int voffs)
 		}
 	}
 	return 0;
+}
+
+static void clear_mtl(struct cmesh_material *mtl)
+{
+	if(!mtl) return;
+	free(mtl->name);
+	free(mtl->texmap);
+	free(mtl->specmap);
+	free(mtl->reflmap);
+	free(mtl->bumpmap);
+	*mtl = defmtl;
+}
+
+static void clone_mtl(struct cmesh_material *dest, struct cmesh_material *src)
+{
+	*dest = *src;
+	if(src->name) dest->name = strdup_nf(src->name);
+	if(src->texmap) dest->texmap = strdup_nf(src->texmap);
+	if(src->specmap) dest->specmap = strdup_nf(src->specmap);
+	if(src->reflmap) dest->reflmap = strdup_nf(src->reflmap);
+	if(src->bumpmap) dest->bumpmap = strdup_nf(src->bumpmap);
 }

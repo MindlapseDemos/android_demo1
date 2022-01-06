@@ -34,6 +34,9 @@ static float next_xform[NUM_TILES][16];
 
 static int seq[SEQ_SZ];
 
+static unsigned int sdr_tun;
+static int uloc_mtl_color = -1;
+
 static float cam_theta, cam_phi, cam_dist;
 
 
@@ -46,6 +49,13 @@ static int init(void)
 {
 	int i;
 	float xform[16];
+
+	if(!(sdr_tun = get_sdrprog("sdr/darktun.v.glsl", "sdr/darktun.p.glsl"))) {
+		return -1;
+	}
+	cmesh_bind_sdrloc(sdr_tun);
+	glUseProgram(sdr_tun);
+	uloc_mtl_color = glGetUniformLocation(sdr_tun, "mtl_color");
 
 	cgm_mtranslation(xform, 0, 0, -TILE_SZ/2);
 
@@ -111,7 +121,7 @@ static void draw(void)
 	gl_rotatef(cam_theta, 0, 1, 0);
 	gl_translatef(0, -0.8, 0);
 
-	glUseProgram(sdr_dbg);
+	glUseProgram(sdr_tun);
 
 	tm = dsys.tmsec - scr.start_time;
 	cur_seq_pos = tm / INTERV % SEQ_SZ;
@@ -134,7 +144,7 @@ static void draw(void)
 	spos = cur_seq_pos;
 	for(i=0; i<3; i++) {
 		tid = seq[spos];
-		gl_apply_xform(sdr_dbg);
+		gl_apply_xform(sdr_tun);
 
 		draw_tile(tid);
 
@@ -146,12 +156,24 @@ static void draw(void)
 static void draw_tile(int tid)
 {
 	int i, num_sub = cmesh_submesh_count(tiles[tid]);
+	struct cmesh_material *mtl;
 
 	if(num_sub) {
 		for(i=0; i<num_sub; i++) {
+			mtl = cmesh_submesh_material(tiles[tid], i);
+
+			if(uloc_mtl_color >= 0) {
+				glUniform3f(uloc_mtl_color, mtl->color.x, mtl->color.y, mtl->color.z);
+			}
+
 			cmesh_draw_submesh(tiles[tid], i);
 		}
 	} else {
+		mtl = cmesh_material(tiles[tid]);
+
+		if(uloc_mtl_color >= 0) {
+			glUniform3f(uloc_mtl_color, mtl->color.x, mtl->color.y, mtl->color.z);
+		}
 		cmesh_draw(tiles[tid]);
 	}
 }

@@ -19,6 +19,16 @@ enum {
 
 struct cmesh;
 
+struct cmesh_material {
+	char *name;
+	cgm_vec3 color, specular;
+	float alpha;
+	float roughness;
+	char *texmap, *specmap;
+	char *reflmap;
+	char *bumpmap;
+};
+
 /* global state */
 void cmesh_set_attrib_sdrloc(int attr, int loc);
 int cmesh_get_attrib_sdrloc(int attr);
@@ -43,6 +53,9 @@ int cmesh_clone(struct cmesh *cmdest, struct cmesh *cmsrc);
 
 int cmesh_set_name(struct cmesh *cm, const char *name);
 const char *cmesh_name(struct cmesh *cm);
+
+struct cmesh_material *cmesh_material(struct cmesh *cm);
+struct cmesh_material *cmesh_submesh_material(struct cmesh *cm, int subidx);
 
 int cmesh_has_attrib(struct cmesh *cm, int attr);
 int cmesh_indexed(struct cmesh *cm);
