@@ -19,6 +19,7 @@ struct facevertex {
 	int vidx, tidx, nidx;
 };
 
+static struct cmesh_material *load_mtllib(const char *fname, const char *dirname, int *num_mtl);
 static char *clean_line(char *s);
 static char *parse_face_vert(char *ptr, struct facevertex *fv, int numv, int numt, int numn);
 static int cmp_facevert(const void *ap, const void *bp);
@@ -40,13 +41,15 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 	int i, line_num = 0, result = -1;
 	int found_quad = 0;
 	ass_file *fp = 0;
-	char buf[256];
+	char buf[256], *dirname, *endp;
 	struct vertex_pos *varr = 0;
 	cgm_vec3 *narr = 0;
 	cgm_vec2 *tarr = 0;
 	struct rbtree *rbtree = 0;
 	char *subname = 0;
 	int substart = 0, subcount = 0;
+	struct cmesh_material *mtllib;
+	int num_mtl;
 
 	if(!(fp = ass_fopen(fname, "rb"))) {
 		fprintf(stderr, "load_mesh: failed to open file: %s\n", fname);
@@ -63,11 +66,23 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 	narr = darr_alloc(0, sizeof *narr);
 	tarr = darr_alloc(0, sizeof *tarr);
 
+	dirname = alloca(strlen(fname) + 1);
+	strcpy(dirname, fname);
+	if((endp = strrchr(dirname, '/'))) {
+		*endp = 0;
+	} else {
+		dirname = 0;
+	}
+
 	while(ass_fgets(buf, sizeof buf, fp)) {
 		char *line = clean_line(buf);
 		++line_num;
 
 		if(!*line) continue;
+
+		if(memcmp(line, "mtllib", 6) == 0) {
+			mtllib = load_mtllib(line + 7, dirname, &num_mtl);
+		}
 
 		switch(line[0]) {
 		case 'v':
@@ -207,10 +222,49 @@ err:
 	darr_free(narr);
 	darr_free(tarr);
 	rb_free(rbtree);
+	free(mtllib);
 	free(subname);
 	return result;
 }
 
+static struct cmesh_material *load_mtllib(const char *fname, const char *dirname, int *num_mtl)
+{
+	int line_num = 0;
+	ass_file *fp;
+	char buf[256], *pathbuf;
+	struct cmesh_material *mtllib;
+
+	if(dirname) {
+		pathbuf = alloca(strlen(fname) + strlen(dirname) + 2);
+		sprintf(pathbuf, "%s/%s", dirname, fname);
+		fname = pathbuf;
+	}
+
+	if(!(fp = ass_fopen(fname, "rb"))) {
+		fprintf(stderr, "failed to open material file: %s\n", fname);
+		return 0;
+	}
+
+	mtllib = darr_alloc(0, sizeof *mtllib);
+
+	while(ass_fgets(buf, sizeof buf, fp)) {
+		char *line = clean_line(buf);
+		++line_num;
+
+		if(!line || !*line) continue;
+
+		/* TODO */
+	}
+
+	if(darr_empty(mtllib)) {
+		darr_free(mtllib);
+		return 0;
+	}
+
+	*num_mtl = darr_size(mtllib);
+	darr_finalize(mtllib);
+	return mtllib;
+}
 
 static char *clean_line(char *s)
 {
