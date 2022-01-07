@@ -1676,7 +1676,7 @@ static int translate_vkey(int vkey)
 	if(vkey >= 'A' && vkey <= 'Z') {
 		vkey += 32;
 	} else if(vkey >= VK_F1 && vkey <= VK_F12) {
-		vkey -= VK_F1 + GLUT_KEY_F1;
+		vkey += GLUT_KEY_F1 - VK_F1;
 	}
 
 	return vkey;
