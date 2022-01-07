@@ -64,6 +64,7 @@ $(name).unsigned.apk: $(so64) $(so32) AndroidManifest.xml $(icons)
 	mkdir -p apkbuild/assets/data apkbuild/assets/sdr
 	cp -r data/* apkbuild/assets/data
 	cp -r sdr/* apkbuild/assets/sdr
+	[ -f demo.cfg ] && cp demo.cfg apkbuild/assets || rm -f apkbuild/assets/demo.cfg
 	mkdir -p apkbuild/res/drawable-xxhdpi apkbuild/res/drawable-xxxhdpi
 	mkdir -p apkbuild/res/drawable-xhdpi apkbuild/res/drawable-hdpi
 	mkdir -p apkbuild/res/drawable-mdpi apkbuild/res/drawable-ldpi

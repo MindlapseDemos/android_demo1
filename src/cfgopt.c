@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "assfile.h"
 #include "cfgopt.h"
 
 #ifdef NDEBUG
@@ -113,11 +114,11 @@ int load_config(const char *fname)
 	char buf[256];
 	int nline = 0;
 
-	if(!(fp = fopen(fname, "rb"))) {
+	if(!(fp = ass_fopen(fname, "rb"))) {
 		return 0;	/* just ignore missing config files */
 	}
 
-	while(fgets(buf, sizeof buf, fp)) {
+	while(ass_fgets(buf, sizeof buf, fp)) {
 		char *line, *key, *value;
 
 		++nline;
@@ -127,12 +128,14 @@ int load_config(const char *fname)
 
 		if(!(value = strchr(line, '='))) {
 			fprintf(stderr, "%s:%d invalid key/value pair\n", fname, nline);
+			ass_fclose(fp);
 			return -1;
 		}
 		*value++ = 0;
 
 		if(!(key = strip_space(line)) || !(value = strip_space(value))) {
 			fprintf(stderr, "%s:%d invalid key/value pair\n", fname, nline);
+			ass_fclose(fp);
 			return -1;
 		}
 
@@ -146,8 +149,11 @@ int load_config(const char *fname)
 			opt.fullscreen = bool_value(value);
 		} else {
 			fprintf(stderr, "%s:%d invalid option: %s\n", fname, nline, line);
+			ass_fclose(fp);
 			return -1;
 		}
 	}
+
+	ass_fclose(fp);
 	return 0;
 }
