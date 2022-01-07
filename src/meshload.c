@@ -21,6 +21,7 @@ struct facevertex {
 
 static struct cmesh_material *load_mtllib(const char *fname, const char *dirname, int *num_mtl);
 static char *clean_line(char *s);
+static char *fullpath(const char *fname, const char *dirname);
 static char *parse_face_vert(char *ptr, struct facevertex *fv, int numv, int numt, int numn);
 static int cmp_facevert(const void *ap, const void *bp);
 static void free_rbnode_key(struct rbnode *n, void *cls);
@@ -67,6 +68,8 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 		goto err;
 	}
 	rb_set_delete_func(rbtree, free_rbnode_key, 0);
+
+	cmesh_set_name(mesh, fname);
 
 	varr = darr_alloc(0, sizeof *varr);
 	narr = darr_alloc(0, sizeof *narr);
@@ -181,7 +184,7 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 
 		case 'o':
 			if(subcount > 0) {
-				printf("adding submesh: %s\n", subname);
+				printf("adding submesh: %s (mtl: %s)\n", subname, curmtl->name);
 				subidx = cmesh_submesh_count(mesh);
 				cmesh_submesh(mesh, subname, substart / 3, subcount / 3);
 				clone_mtl(cmesh_submesh_material(mesh, subidx), curmtl);
@@ -229,7 +232,7 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 		 * single 'o' for the whole list of faces, is a single mesh without submeshes
 		 */
 		if(cmesh_submesh_count(mesh) > 0) {
-			printf("adding submesh: %s\n", subname);
+			printf("adding submesh: %s (mtl: %s)\n", subname, curmtl->name);
 			subidx = cmesh_submesh_count(mesh);
 			cmesh_submesh(mesh, subname, substart / 3, subcount / 3);
 			clone_mtl(cmesh_submesh_material(mesh, subidx), curmtl);
@@ -248,7 +251,7 @@ int cmesh_load(struct cmesh *mesh, const char *fname)
 			cmesh_attrib_count(mesh, CMESH_ATTR_VERTEX), cmesh_poly_count(mesh));
 
 err:
-	if(fp) fclose(fp);
+	if(fp) ass_fclose(fp);
 	darr_free(varr);
 	darr_free(narr);
 	darr_free(tarr);
@@ -309,24 +312,26 @@ static struct cmesh_material *load_mtllib(const char *fname, const char *dirname
 			if(mtl) mtl->alpha = atof(line + 2);
 		} else if(memcmp(line, "map_Kd", 6) == 0) {
 			if(mtl && (line = clean_line(line + 6))) {
-				mtl->texmap = strdup_nf(line);
+				mtl->tex[CMESH_TEX_COLOR].name = fullpath(line, dirname);
 			}
 		} else if(memcmp(line, "map_Ke", 6) == 0) {
 			if(mtl && (line = clean_line(line + 6))) {
-				mtl->lightmap = strdup_nf(line);
+				mtl->tex[CMESH_TEX_LIGHT].name = fullpath(line, dirname);
 			}
 		} else if(memcmp(line, "map_bump", 8) == 0 || memcmp(line, "bump", 4) == 0) {
 			while(*line && !isspace(*line)) line++;
 			if(mtl && (line = clean_line(line))) {
-				mtl->bumpmap = strdup_nf(line);
+				mtl->tex[CMESH_TEX_BUMP].name = fullpath(line, dirname);
 			}
 		} else if(memcmp(line, "refl", 4) == 0) {
 			if(mtl && (line = clean_line(line))) {
 				/* TODO: support -type */
-				mtl->reflmap = strdup_nf(line);
+				mtl->tex[CMESH_TEX_REFLECT].name = fullpath(line, dirname);
 			}
 		}
 	}
+
+	ass_fclose(fp);
 
 	if(darr_empty(mtllib)) {
 		darr_free(mtllib);
@@ -354,6 +359,18 @@ static char *clean_line(char *s)
 	}
 
 	return s;
+}
+
+static char *fullpath(const char *fname, const char *dirname)
+{
+	char *path;
+	if(dirname) {
+		path = malloc_nf(strlen(fname) + strlen(dirname) + 2);
+		sprintf(path, "%s/%s", dirname, fname);
+	} else {
+		path = strdup_nf(fname);
+	}
+	return path;
 }
 
 static char *parse_idx(char *ptr, int *idx, int arrsz)
@@ -419,22 +436,22 @@ static void free_rbnode_key(struct rbnode *n, void *cls)
 
 static void clear_mtl(struct cmesh_material *mtl)
 {
+	int i;
 	if(!mtl) return;
 	free(mtl->name);
-	free(mtl->texmap);
-	free(mtl->specmap);
-	free(mtl->reflmap);
-	free(mtl->bumpmap);
-	free(mtl->lightmap);
+	for(i=0; i<CMESH_NUM_TEX; i++) {
+		free(mtl->tex[i].name);
+	}
 }
 
 static void clone_mtl(struct cmesh_material *dest, struct cmesh_material *src)
 {
+	int i;
 	*dest = *src;
 	if(src->name) dest->name = strdup_nf(src->name);
-	if(src->texmap) dest->texmap = strdup_nf(src->texmap);
-	if(src->specmap) dest->specmap = strdup_nf(src->specmap);
-	if(src->reflmap) dest->reflmap = strdup_nf(src->reflmap);
-	if(src->bumpmap) dest->bumpmap = strdup_nf(src->bumpmap);
-	if(src->lightmap) dest->lightmap = strdup_nf(src->lightmap);
+	for(i=0; i<CMESH_NUM_TEX; i++) {
+		if(src->tex[i].name) {
+			dest->tex[i].name = strdup_nf(src->tex[i].name);
+		}
+	}
 }

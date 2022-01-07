@@ -22,6 +22,7 @@ long start_time, stop_time;
 long sys_time, time_msec;
 
 unsigned int sdr_dbg;
+unsigned int deftex_white, deftex_black, deftex_normal;
 
 int demo_init(void);
 void demo_cleanup(void);

@@ -19,15 +19,27 @@ enum {
 
 struct cmesh;
 
+enum {
+	CMESH_TEX_COLOR,
+	CMESH_TEX_SPECULAR,
+	CMESH_TEX_REFLECT,
+	CMESH_TEX_BUMP,
+	CMESH_TEX_LIGHT,
+
+	CMESH_NUM_TEX
+};
+
+struct cmesh_texture {
+	char *name;
+	unsigned int id;
+};
+
 struct cmesh_material {
 	char *name;
 	cgm_vec3 color, specular, emissive;
 	float alpha;
 	float roughness, ior;
-	char *texmap, *specmap;
-	char *reflmap;
-	char *bumpmap;
-	char *lightmap;
+	struct cmesh_texture tex[CMESH_NUM_TEX];
 };
 
 /* global state */
@@ -57,6 +69,7 @@ const char *cmesh_name(struct cmesh *cm);
 
 struct cmesh_material *cmesh_material(struct cmesh *cm);
 struct cmesh_material *cmesh_submesh_material(struct cmesh *cm, int subidx);
+int cmesh_load_textures(struct cmesh *cm);
 
 int cmesh_has_attrib(struct cmesh *cm, int attr);
 int cmesh_indexed(struct cmesh *cm);

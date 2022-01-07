@@ -7,6 +7,8 @@
 #include "music.h"
 #include "cmesh.h"
 
+static void gen_default_textures(void);
+
 static unsigned int sdr_foo;
 static unsigned int tex_logo;
 static int mute;
@@ -25,6 +27,8 @@ int demo_init(void)
 		return -1;
 	}
 	cmesh_bind_sdrloc(sdr_dbg);
+
+	gen_default_textures();
 
 	if(!(sdr_foo = get_sdrprog("sdr/foo.v.glsl", "sdr/foo.p.glsl"))) {
 		return -1;
@@ -77,6 +81,10 @@ void demo_cleanup(void)
 	destroy_music();
 	dsys_destroy();
 	destroy_assman();
+
+	glDeleteTextures(1, &deftex_white);
+	glDeleteTextures(1, &deftex_black);
+	glDeleteTextures(1, &deftex_normal);
 }
 
 void demo_display(void)
@@ -210,4 +218,23 @@ void demo_motion(int x, int y)
 		struct demoscreen *scr = dsys.act[i];
 		if(scr->motion) scr->motion(x, y);
 	}
+}
+
+static void gen_default_textures(void)
+{
+	static const uint32_t col[] = {0xff000000, 0xffffffff, 0xffff7f7f};
+	int i;
+	unsigned int tex[3];
+
+	glGenTextures(3, tex);
+	for(i=0; i<3; i++) {
+		glBindTexture(GL_TEXTURE_2D, tex[i]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, col + i);
+	}
+
+	deftex_black = tex[0];
+	deftex_white = tex[1];
+	deftex_normal = tex[2];
 }

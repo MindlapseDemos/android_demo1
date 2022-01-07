@@ -6,6 +6,7 @@
 #include "opengl.h"
 #include "sdr.h"
 #include "cmesh.h"
+#include "assman.h"
 #include "util.h"
 
 
@@ -35,7 +36,7 @@ struct cmesh {
 	char *name;
 	unsigned int nverts, nfaces;
 
-	struct submesh *sublist;
+	struct submesh *sublist, *subtail;
 	int subcount;
 
 	struct cmesh_material mtl;
@@ -81,7 +82,7 @@ static int sdr_loc[CMESH_NUM_ATTR] = {0, 1, 2, 3, 4, 5, 6, 7};
 static int use_custom_sdr_attr;
 
 static const struct cmesh_material defmtl = {
-	0, {1, 1, 1}, {0, 0, 0}, {0, 0, 0}, 1, 1, 1, 0
+	0, {1, 1, 1}, {0, 0, 0}, {0, 0, 0}, 1, 1, 1
 };
 
 
@@ -326,6 +327,7 @@ static int clone(struct cmesh *cmdest, struct cmesh *cmsrc, struct submesh *sub)
 		}
 
 		cmdest->sublist = head;
+		cmdest->subtail = tail;
 		cmdest->subcount = cmsrc->subcount;
 	}
 
@@ -357,6 +359,36 @@ struct cmesh_material *cmesh_submesh_material(struct cmesh *cm, int subidx)
 		sm = sm->next;
 	}
 	return sm ? &sm->mtl : 0;
+}
+
+static int load_textures(struct cmesh_material *mtl)
+{
+	int i, res = 0;
+	for(i=0; i<CMESH_NUM_TEX; i++) {
+		if(mtl->tex[i].name && !(mtl->tex[i].id = get_tex2d(mtl->tex[i].name))) {
+			res = -1;
+		}
+	}
+	return res;
+}
+
+int cmesh_load_textures(struct cmesh *cm)
+{
+	int res = 0;
+	struct submesh *sm;
+
+	if(load_textures(&cm->mtl) == -1) {
+		res = -1;
+	}
+
+	sm = cm->sublist;
+	while(sm) {
+		if(load_textures(&sm->mtl) == -1) {
+			res = -1;
+		}
+		sm = sm->next;
+	}
+	return res;
 }
 
 int cmesh_has_attrib(struct cmesh *cm, int attr)
@@ -713,6 +745,7 @@ void cmesh_clear_submeshes(struct cmesh *cm)
 		clear_mtl(&sm->mtl);
 		free(sm);
 	}
+	cm->subtail = 0;
 	cm->subcount = 0;
 }
 
@@ -751,8 +784,13 @@ int cmesh_submesh(struct cmesh *cm, const char *name, int fstart, int fcount)
 		sm->vcount = fcount * 3;
 	}
 
-	sm->next = cm->sublist;
-	cm->sublist = sm;
+	sm->next = 0;
+	if(cm->sublist) {
+		cm->subtail->next = sm;
+		cm->subtail = sm;
+	} else {
+		cm->sublist = cm->subtail = sm;
+	}
 	cm->subcount++;
 	return 0;
 }
@@ -784,6 +822,11 @@ int cmesh_remove_submesh(struct cmesh *cm, int idx)
 	assert(cm->subcount >= 0);
 
 	cm->sublist = dummy.next;
+	if(!cm->sublist) {
+		cm->sublist = cm->subtail = 0;
+	} else {
+		if(cm->subtail == sm) cm->subtail = prev;
+	}
 	return 0;
 }
 
@@ -1572,23 +1615,23 @@ int cmesh_dump_obj_file(struct cmesh *cm, FILE *fp, int voffs)
 
 static void clear_mtl(struct cmesh_material *mtl)
 {
+	int i;
 	if(!mtl) return;
 	free(mtl->name);
-	free(mtl->texmap);
-	free(mtl->specmap);
-	free(mtl->reflmap);
-	free(mtl->bumpmap);
-	free(mtl->lightmap);
+	for(i=0; i<CMESH_NUM_TEX; i++) {
+		free(mtl->tex[i].name);
+	}
 	*mtl = defmtl;
 }
 
 static void clone_mtl(struct cmesh_material *dest, struct cmesh_material *src)
 {
+	int i;
 	*dest = *src;
 	if(src->name) dest->name = strdup_nf(src->name);
-	if(src->texmap) dest->texmap = strdup_nf(src->texmap);
-	if(src->specmap) dest->specmap = strdup_nf(src->specmap);
-	if(src->reflmap) dest->reflmap = strdup_nf(src->reflmap);
-	if(src->bumpmap) dest->bumpmap = strdup_nf(src->bumpmap);
-	if(src->lightmap) dest->lightmap = strdup_nf(src->lightmap);
+	for(i=0; i<CMESH_NUM_TEX; i++) {
+		if(src->tex[i].name) {
+			dest->tex[i].name = strdup_nf(src->tex[i].name);
+		}
+	}
 }

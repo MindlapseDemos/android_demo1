@@ -66,6 +66,7 @@ unsigned int get_tex2d(const char *fname)
 	img_destroy(&pixmap);
 
 	if(id) {
+		printf("loaded 2D texture: %s\n", fname);
 		add_asset(fname, ASS_TEX, id);
 	}
 	return id;
@@ -76,16 +77,12 @@ unsigned int get_texcube(const char *fname)
 	return 0;	/* TODO */
 }
 
-unsigned int get_vsdr(const char *fname)
+static unsigned int load_sdr(const char *fname, unsigned int type)
 {
 	unsigned int sdr;
 	long sz;
 	char *buf;
 	struct assfile *fp;
-
-	if((sdr = lookup_asset(fname))) {
-		return sdr;
-	}
 
 	if(!(fp = ass_fopen(fname, "rb"))) {
 		fprintf(stderr, "failed to load vertex shader: %s\n", fname);
@@ -105,50 +102,53 @@ unsigned int get_vsdr(const char *fname)
 	buf[sz] = 0;
 	ass_fclose(fp);
 
-	printf("vertex shader %s ", fname);
-	fflush(stdout);
-	sdr = create_vertex_shader(buf);
+	switch(type) {
+	case GL_VERTEX_SHADER:
+		printf("vertex shader %s ", fname);
+		fflush(stdout);
+		sdr = create_vertex_shader(buf);
+		break;
+
+	case GL_FRAGMENT_SHADER:
+		printf("pixel shader %s ", fname);
+		fflush(stdout);
+		sdr = create_pixel_shader(buf);
+		break;
+
+	default:
+		fprintf(stderr, "unknown shader type (%d) %s\n", type, fname);
+		return 0;
+	}
 	free(buf);
 
-	if(sdr) add_asset(fname, ASS_SDR, sdr);
+	return sdr;
+}
+
+unsigned int get_vsdr(const char *fname)
+{
+	unsigned int sdr;
+
+	if((sdr = lookup_asset(fname))) {
+		return sdr;
+	}
+
+	if((sdr = load_sdr(fname, GL_VERTEX_SHADER))) {
+		add_asset(fname, ASS_SDR, sdr);
+	}
 	return sdr;
 }
 
 unsigned int get_psdr(const char *fname)
 {
 	unsigned int sdr;
-	long sz;
-	char *buf;
-	struct assfile *fp;
 
 	if((sdr = lookup_asset(fname))) {
 		return sdr;
 	}
 
-	if(!(fp = ass_fopen(fname, "rb"))) {
-		fprintf(stderr, "failed to load vertex shader: %s\n", fname);
-		return 0;
+	if((sdr = load_sdr(fname, GL_FRAGMENT_SHADER))) {
+		add_asset(fname, ASS_SDR, sdr);
 	}
-	ass_fseek(fp, 0, SEEK_END);
-	sz = ass_ftell(fp);
-	ass_fseek(fp, 0, SEEK_SET);
-
-	buf = malloc_nf(sz + 1);
-	if(ass_fread(buf, 1, sz, fp) < sz) {
-		fprintf(stderr, "failed to read vertex shader: %s\n", fname);
-		free(buf);
-		ass_fclose(fp);
-		return 0;
-	}
-	buf[sz] = 0;
-	ass_fclose(fp);
-
-	printf("pixel shader %s ", fname);
-	fflush(stdout);
-	sdr = create_pixel_shader(buf);
-	free(buf);
-
-	if(sdr) add_asset(fname, ASS_SDR, sdr);
 	return sdr;
 }
 
@@ -199,6 +199,18 @@ unsigned int lookup_asset(const char *name)
 	return ((struct asset*)n->data)->id;
 }
 
+unsigned int load_sdrprog(const char *vfname, const char *pfname)
+{
+	unsigned int vsdr, psdr, prog;
+
+	if(!(vsdr = load_sdr(vfname, GL_VERTEX_SHADER)) || !(psdr = load_sdr(pfname, GL_FRAGMENT_SHADER))) {
+		return 0;
+	}
+	if(!(prog = create_program_link(vsdr, psdr, 0))) {
+		return 0;
+	}
+	return prog;
+}
 
 static size_t io_read(void *buf, size_t bytes, void *uptr)
 {

@@ -16,4 +16,7 @@ unsigned int get_sdrprog(const char *vfname, const char *pfname);
 int add_asset(const char *name, int type, unsigned int id);
 unsigned int lookup_asset(const char *name);
 
+/* uncached version of get_sdrprog, useful for ubershaders */
+unsigned int load_sdrprog(const char *vfname, const char *pfname);
+
 #endif	/* ASSMAN_H_ */

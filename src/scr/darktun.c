@@ -66,6 +66,7 @@ static int init(void)
 				fprintf(stderr, "darktun: failed to load tile mesh: %s\n", tile_files[i]);
 				return -1;
 			}
+			cmesh_load_textures(tiles[i]);
 			cmesh_apply_xform(tiles[i], xform, 0);
 		} else {
 			assert(tiles[i - 1]);
@@ -153,6 +154,18 @@ static void draw(void)
 	}
 }
 
+static void setup_material(struct cmesh_material *mtl)
+{
+	if(uloc_mtl_color >= 0) {
+		glUniform3f(uloc_mtl_color, mtl->color.x, mtl->color.y, mtl->color.z);
+	}
+	if(mtl->tex[CMESH_TEX_COLOR].id) {
+		glBindTexture(GL_TEXTURE_2D, mtl->tex[CMESH_TEX_COLOR].id);
+	} else {
+		glBindTexture(GL_TEXTURE_2D, deftex_white);
+	}
+}
+
 static void draw_tile(int tid)
 {
 	int i, num_sub = cmesh_submesh_count(tiles[tid]);
@@ -161,19 +174,12 @@ static void draw_tile(int tid)
 	if(num_sub) {
 		for(i=0; i<num_sub; i++) {
 			mtl = cmesh_submesh_material(tiles[tid], i);
-
-			if(uloc_mtl_color >= 0) {
-				glUniform3f(uloc_mtl_color, mtl->color.x, mtl->color.y, mtl->color.z);
-			}
-
+			setup_material(mtl);
 			cmesh_draw_submesh(tiles[tid], i);
 		}
 	} else {
 		mtl = cmesh_material(tiles[tid]);
-
-		if(uloc_mtl_color >= 0) {
-			glUniform3f(uloc_mtl_color, mtl->color.x, mtl->color.y, mtl->color.z);
-		}
+		setup_material(mtl);
 		cmesh_draw(tiles[tid]);
 	}
 }
