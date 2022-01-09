@@ -72,7 +72,8 @@ static void post_draw(struct cmesh *cm, int cur_sdr);
 static void update_buffers(struct cmesh *cm);
 static void update_wire_ibo(struct cmesh *cm);
 static void calc_aabb(struct cmesh *cm);
-static void calc_bsph(struct cmesh *cm);
+static void calc_bsph_noidx(struct cmesh *cm, int start, int count);
+static void calc_bsph_idx(struct cmesh *cm, int start, int count);
 static void clear_mtl(struct cmesh_material *mtl);
 static void clone_mtl(struct cmesh_material *dest, struct cmesh_material *src);
 
@@ -869,6 +870,17 @@ int cmesh_clone_submesh(struct cmesh *cmdest, struct cmesh *cm, int subidx)
 	return clone(cmdest, cm, sub);
 }
 
+const char *cmesh_submesh_name(struct cmesh *cm, int idx)
+{
+	struct submesh *sub;
+
+	if(!(sub = get_submesh(cm, idx))) {
+		return 0;
+	}
+	return sub->name;
+}
+
+
 
 /* assemble a complete vertex by adding all the useful attributes */
 int cmesh_vertex(struct cmesh *cm, float x, float y, float z)
@@ -1424,7 +1436,7 @@ void cmesh_aabbox(struct cmesh *cm, cgm_vec3 *vmin, cgm_vec3 *vmax)
 	*vmax = cm->aabb_max;
 }
 
-static void calc_bsph(struct cmesh *cm)
+static void calc_bsph_noidx(struct cmesh *cm, int start, int count)
 {
 	int i;
 	float s, dist_sq;
@@ -1432,12 +1444,13 @@ static void calc_bsph(struct cmesh *cm)
 	if(!cmesh_attrib_ro(cm, CMESH_ATTR_VERTEX)) {
 		return;
 	}
+	if(count <= 0) count = cm->nverts;
 
 	cgm_vcons(&cm->bsph_center, 0, 0, 0);
 
 	/* first find the center */
-	for(i=0; i<cm->nverts; i++) {
-		const float *v = cmesh_attrib_at_ro(cm, CMESH_ATTR_VERTEX, i);
+	for(i=0; i<count; i++) {
+		const float *v = cmesh_attrib_at_ro(cm, CMESH_ATTR_VERTEX, i + start);
 		cm->bsph_center.x += v[0];
 		cm->bsph_center.y += v[1];
 		cm->bsph_center.z += v[2];
@@ -1448,8 +1461,8 @@ static void calc_bsph(struct cmesh *cm)
 	cm->bsph_center.z *= s;
 
 	cm->bsph_radius = 0.0f;
-	for(i=0; i<cm->nverts; i++) {
-		const cgm_vec3 *v = (const cgm_vec3*)cmesh_attrib_at_ro(cm, CMESH_ATTR_VERTEX, i);
+	for(i=0; i<count; i++) {
+		const cgm_vec3 *v = (const cgm_vec3*)cmesh_attrib_at_ro(cm, CMESH_ATTR_VERTEX, i + start);
 		if((dist_sq = cgm_vdist_sq(v, &cm->bsph_center)) > cm->bsph_radius) {
 			cm->bsph_radius = dist_sq;
 		}
@@ -1458,13 +1471,72 @@ static void calc_bsph(struct cmesh *cm)
 	cm->bsph_valid = 1;
 }
 
+static void calc_bsph_idx(struct cmesh *cm, int start, int count)
+{
+	int i;
+	float s, dist_sq;
+
+	if(!cmesh_attrib_ro(cm, CMESH_ATTR_VERTEX) || !cmesh_index_ro(cm)) {
+		return;
+	}
+	if(count <= 0) count = cm->icount;
+
+	cgm_vcons(&cm->bsph_center, 0, 0, 0);
+
+	/* first find the center */
+	for(i=0; i<count; i++) {
+		int idx = cm->idata[i + start];
+		const float *v = cmesh_attrib_at_ro(cm, CMESH_ATTR_VERTEX, idx);
+		cm->bsph_center.x += v[0];
+		cm->bsph_center.y += v[1];
+		cm->bsph_center.z += v[2];
+	}
+	s = 1.0f / (float)cm->nverts;
+	cm->bsph_center.x *= s;
+	cm->bsph_center.y *= s;
+	cm->bsph_center.z *= s;
+
+	cm->bsph_radius = 0.0f;
+	for(i=0; i<count; i++) {
+		int idx = cm->idata[i + start];
+		const cgm_vec3 *v = (const cgm_vec3*)cmesh_attrib_at_ro(cm, CMESH_ATTR_VERTEX, idx);
+		if((dist_sq = cgm_vdist_sq(v, &cm->bsph_center)) > cm->bsph_radius) {
+			cm->bsph_radius = dist_sq;
+		}
+	}
+	cm->bsph_radius = sqrt(cm->bsph_radius);
+	cm->bsph_valid = 1;
+}
+
+
 float cmesh_bsphere(struct cmesh *cm, cgm_vec3 *center, float *rad)
 {
 	if(!cm->bsph_valid) {
-		calc_bsph(cm);
+		calc_bsph_noidx(cm, 0, 0);
 	}
-	*center = cm->bsph_center;
-	*rad = cm->bsph_radius;
+	if(center) *center = cm->bsph_center;
+	if(rad) *rad = cm->bsph_radius;
+	return cm->bsph_radius;
+}
+
+float cmesh_submesh_bsphere(struct cmesh *cm, int subidx, cgm_vec3 *center, float *rad)
+{
+	struct submesh *sm = get_submesh(cm, subidx);
+	if(!sm) {
+		cgm_vcons(center, 0, 0, 0);
+		*rad = 0;
+		return 0;
+	}
+
+	if(sm->icount) {
+		calc_bsph_idx(cm, sm->istart, sm->icount);
+	} else {
+		calc_bsph_noidx(cm, sm->vstart, sm->vcount);
+	}
+	cm->bsph_valid = 0;
+
+	if(center) *center = cm->bsph_center;
+	if(rad) *rad = cm->bsph_radius;
 	return cm->bsph_radius;
 }
 

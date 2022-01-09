@@ -42,6 +42,7 @@
     <ClCompile Include="src\cmesh.c" />
     <ClCompile Include="src\meshload.c" />
     <ClCompile Include="src\meshgen.c" />
+    <ClCompile Include="src\scene.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\assfile.h" />
@@ -60,6 +61,7 @@
     <ClInclude Include="src\util.h" />
     <ClInclude Include="src\cmesh.h" />
     <ClInclude Include="src\meshgen.h" />
+    <ClInclude Include="src\scene.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

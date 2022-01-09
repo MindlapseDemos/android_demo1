@@ -115,6 +115,7 @@ int cmesh_remove_submesh(struct cmesh *cm, int idx);
 int cmesh_find_submesh(struct cmesh *cm, const char *name);
 int cmesh_submesh_count(struct cmesh *cm);
 int cmesh_clone_submesh(struct cmesh *cmdest, struct cmesh *cm, int subidx);
+const char *cmesh_submesh_name(struct cmesh *cm, int idx);
 
 /* immediate-mode style mesh construction interface */
 int cmesh_vertex(struct cmesh *cm, float x, float y, float z);
@@ -152,6 +153,7 @@ void cmesh_aabbox(struct cmesh *cm, cgm_vec3 *vmin, cgm_vec3 *vmax);
 
 /* get the bounding sphere in local space. The result will be cached ... see above */
 float cmesh_bsphere(struct cmesh *cm, cgm_vec3 *center, float *rad);
+float cmesh_submesh_bsphere(struct cmesh *cm, int subidx, cgm_vec3 *center, float *rad);
 
 /* texture coordinate manipulation */
 void cmesh_texcoord_apply_xform(struct cmesh *cm, float *xform);
