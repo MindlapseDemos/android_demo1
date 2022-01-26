@@ -7,7 +7,7 @@
 #define TILE_SZ	6.0f
 #define SEQ_SZ	32
 #define INTERV	1500
-#define DRAW_TILES	1
+#define DRAW_TILES	3
 
 static int init(void);
 static void destroy(void);
@@ -77,9 +77,9 @@ static int init(void)
 				fprintf(stderr, "darktun: failed to load tile mesh: %s\n", tile_files[i]);
 				return -1;
 			}
-			add_lights(tiles[i], mesh);
 			cmesh_load_textures(mesh);
 			cmesh_apply_xform(mesh, xform, 0);
+			add_lights(tiles[i], mesh);
 			scn_add_object(tiles[i], scn_alloc_object(mesh));
 		} else {
 			assert(tiles[i - 1]);
@@ -129,6 +129,7 @@ static void draw(void)
 	gl_load_identity();
 	glu_perspective(60.0f, win_aspect, 0.5f, 500.0f);
 
+	cgm_midentity(viewmat);
 	cgm_mtranslation(viewmat, 0, 0, -cam_dist);
 	cgm_mprerotate_x(viewmat, cgm_deg_to_rad(cam_phi));
 	cgm_mprerotate_y(viewmat, cgm_deg_to_rad(cam_theta));
@@ -136,9 +137,9 @@ static void draw(void)
 
 	glUseProgram(sdr_tun);
 
-	tm = 0;//dsys.tmsec - scr.start_time;
-	cur_seq_pos = 0;//tm / INTERV % SEQ_SZ;
-	t = 0.5;//(float)(tm % INTERV) / INTERV;
+	tm = dsys.tmsec - scr.start_time;
+	cur_seq_pos = tm / INTERV % SEQ_SZ;
+	t = (float)(tm % INTERV) / INTERV;
 
 	if(t < 0.5f) {
 		cgm_vlerp(&p, &zero, &cent, t * 2.0f);
@@ -169,14 +170,10 @@ static void draw(void)
 			cgm_vmul_m4v3(&vpos, viewmat);
 
 			glUniform4f(uloc_light[nlights], vpos.x, vpos.y, vpos.z, 1);
-			if(nlights == 0) {
-				printf("light: %f %f %f\n", vpos.x, vpos.y, vpos.z);
-			}
-
 			nlights++;
 		}
 
-		cgm_mmul(viewmat, next_xform[tid]);
+		cgm_mpremul(viewmat, next_xform[tid]);
 		spos = (spos + 1) % SEQ_SZ;
 	}
 

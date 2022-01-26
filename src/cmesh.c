@@ -1455,7 +1455,7 @@ static void calc_bsph_noidx(struct cmesh *cm, int start, int count)
 		cm->bsph_center.y += v[1];
 		cm->bsph_center.z += v[2];
 	}
-	s = 1.0f / (float)cm->nverts;
+	s = 1.0f / (float)count;
 	cm->bsph_center.x *= s;
 	cm->bsph_center.y *= s;
 	cm->bsph_center.z *= s;
@@ -1491,7 +1491,7 @@ static void calc_bsph_idx(struct cmesh *cm, int start, int count)
 		cm->bsph_center.y += v[1];
 		cm->bsph_center.z += v[2];
 	}
-	s = 1.0f / (float)cm->nverts;
+	s = 1.0f / (float)count;
 	cm->bsph_center.x *= s;
 	cm->bsph_center.y *= s;
 	cm->bsph_center.z *= s;
