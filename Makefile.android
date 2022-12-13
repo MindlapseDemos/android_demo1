@@ -49,7 +49,9 @@ $(name).apk: $(name).aligned.apk keystore.jks
 	apksigner sign --ks keystore.jks --ks-key-alias androidkey --ks-pass pass:android --key-pass pass:android --out $@ $<
 
 keystore.jks:
-	keytool -genkeypair -keystore $@ -alias androidkey -validity 10000 -keyalg RSA -keysize 2048 -storepass android -keypass android
+	keytool -genkeypair -keystore $@ -alias androidkey -validity 10000 \
+		-keyalg RSA -keysize 2048 -storepass android -keypass android \
+		-dname "cn=John Tsiombikas, o=Mindlapse, c=GR"
 
 $(name).aligned.apk: $(name).unsigned.apk
 	zipalign -f -p 4 $< $@

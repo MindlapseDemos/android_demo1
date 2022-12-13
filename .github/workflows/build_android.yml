@@ -1,0 +1,28 @@
+name: Android build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: prepare datafiles
+      run: |
+        svn export svn://mutantstargoat.com/datadirs/android_demo1 data
+
+    - name: build demo
+      run: |
+        export PATH=$PATH:$ANDROID_HOME/build-tools/27.0.0
+        ln -s toolchains/llvm/prebuilt/linux-x86_64/sysroot $ANDROID_HOME/ndk/23.2.8568313/sysroot 
+        make -f Makefile.android SDK=$ANDROID_HOME NDK=$ANDROID_HOME/ndk/23.2.8568313 AVER=27
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: demo-android
+        path: andemo.apk
