@@ -24,7 +24,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         msbuild -m -p:Configuration=Release -t:andemo
-        copy Release\demo.exe demo.exe
+        copy x64\Release\demo.exe demo.exe
 
     - uses: actions/upload-artifact@v3
       with:
