@@ -12,11 +12,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install libgl-dev libglu1-mesa-dev freeglut3-dev
-
     - name: prepare datafiles
       run: |
         svn export svn://mutantstargoat.com/datadirs/android_demo1 data
