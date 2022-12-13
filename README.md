@@ -1,5 +1,11 @@
 Untitled android demo
 =====================
+
+![Android build status](https://github.com/MindlapseDemos/android_demo1/actions/workflows/build_android.yml/badge.svg)
+![GNU/Linux build status](https://github.com/MindlapseDemos/android_demo1/actions/workflows/build_gnulinux.yml/badge.svg)
+![win32 (msvc) build status](https://github.com/MindlapseDemos/android_demo1/actions/workflows/build_win_msvc.yml/badge.svg)
+
+
 This is the source readme file. For the demo info file see <name>.nfo
 
 Multiplatform demo for Android, GNU/Linux, and Windows.
