@@ -15,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#if defined(__unix__)
+#if defined(unix) || defined(__unix__)
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -33,6 +33,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 static Display *dpy;
 static Window win, root;
+static Colormap cmap;
+static int cmap_size;
 static int scr;
 static GLXContext ctx;
 static Atom xa_wm_proto, xa_wm_del_win;
@@ -55,12 +57,19 @@ static HINSTANCE hinst;
 static HWND win;
 static HDC dc;
 static HGLRC ctx;
+static HPALETTE cmap;
+static int cmap_size;
 
 #else
 #error unsupported platform
 #endif
 #include <GL/gl.h>
 #include "miniglut.h"
+
+#ifdef _MSC_VER
+#pragma warning (disable: 4244 4305)
+#endif
+
 
 struct ctx_info {
 	int rsize, gsize, bsize, asize;
@@ -366,6 +375,8 @@ int glutGet(unsigned int s)
 		return ctx_info.srgb;
 	case GLUT_WINDOW_CURSOR:
 		return cur_cursor;
+	case GLUT_WINDOW_COLORMAP_SIZE:
+		return cmap_size;
 	case GLUT_SCREEN_WIDTH:
 		get_screen_size(&x, &y);
 		return x;
@@ -520,7 +531,7 @@ static KeySym translate_keysym(KeySym sym)
 	case XK_Linefeed:
 		return '\r';
 	case XK_Return:
-		return '\n';
+		return '\r';
 	case XK_Delete:
 		return 127;
 	case XK_Tab:
@@ -821,6 +832,48 @@ void glutSetCursor(int cidx)
 	cur_cursor = cidx;
 }
 
+void glutWarpPointer(int x, int y)
+{
+	XWarpPointer(dpy, None, win, 0, 0, 0, 0, x, y);
+}
+
+void glutSetColor(int idx, float r, float g, float b)
+{
+	XColor color;
+
+	if(idx >= 0 && idx < cmap_size) {
+		color.pixel = idx;
+		color.red = (unsigned short)(r * 65535.0f);
+		color.green = (unsigned short)(g * 65535.0f);
+		color.blue = (unsigned short)(b * 65535.0f);
+		color.flags = DoRed | DoGreen | DoBlue;
+		XStoreColor(dpy, cmap, &color);
+	}
+}
+
+float glutGetColor(int idx, int comp)
+{
+	XColor color;
+
+	if(idx < 0 || idx >= cmap_size) {
+		return -1.0f;
+	}
+
+	color.pixel = idx;
+	XQueryColor(dpy, cmap, &color);
+	switch(comp) {
+	case GLUT_RED:
+		return color.red / 65535.0f;
+	case GLUT_GREEN:
+		return color.green / 65535.0f;
+	case GLUT_BLUE:
+		return color.blue / 65535.0f;
+	default:
+		break;
+	}
+	return -1.0f;
+}
+
 void glutSetKeyRepeat(int repmode)
 {
 	if(repmode) {
@@ -846,9 +899,9 @@ static XVisualInfo *choose_visual(unsigned int mode)
 		*aptr++ = 1;
 	} else {
 		*aptr++ = GLX_RGBA;
-		*aptr++ = GLX_RED_SIZE; *aptr++ = 4;
-		*aptr++ = GLX_GREEN_SIZE; *aptr++ = 4;
-		*aptr++ = GLX_BLUE_SIZE; *aptr++ = 4;
+		*aptr++ = GLX_RED_SIZE; *aptr++ = 1;
+		*aptr++ = GLX_GREEN_SIZE; *aptr++ = 1;
+		*aptr++ = GLX_BLUE_SIZE; *aptr++ = 1;
 	}
 	if(mode & GLUT_ALPHA) {
 		*aptr++ = GLX_ALPHA_SIZE;
@@ -856,7 +909,7 @@ static XVisualInfo *choose_visual(unsigned int mode)
 	}
 	if(mode & GLUT_DEPTH) {
 		*aptr++ = GLX_DEPTH_SIZE;
-		*aptr++ = 16;
+		*aptr++ = 8;
 	}
 	if(mode & GLUT_STENCIL) {
 		*aptr++ = GLX_STENCIL_SIZE;
@@ -924,13 +977,21 @@ static void create_window(const char *title)
 	glXGetConfig(dpy, vi, GLX_SAMPLES_ARB, &ctx_info.samples);
 	glXGetConfig(dpy, vi, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &ctx_info.srgb);
 
+	if(!(cmap = XCreateColormap(dpy, root, vi->visual, mode & GLUT_INDEX ? AllocAll : AllocNone))) {
+		XFree(vi);
+		glXDestroyContext(dpy, ctx);
+		panic("Failed to create colormap\n");
+	}
+	cmap_size = GLUT_INDEX ? vi->colormap_size : 0;
+
 	xattr.background_pixel = BlackPixel(dpy, scr);
-	xattr.colormap = XCreateColormap(dpy, root, vi->visual, AllocNone);
+	xattr.colormap = cmap;
 	xattr_mask = CWBackPixel | CWColormap | CWBackPixmap | CWBorderPixel;
 	if(!(win = XCreateWindow(dpy, root, init_x, init_y, init_width, init_height, 0,
 			vi->depth, InputOutput, vi->visual, xattr_mask, &xattr))) {
 		XFree(vi);
 		glXDestroyContext(dpy, ctx);
+		XFreeColormap(dpy, cmap);
 		panic("Failed to create window\n");
 	}
 	XFree(vi);
@@ -1202,20 +1263,32 @@ void glutPositionWindow(int x, int y)
 	SetWindowPos(win, HWND_NOTOPMOST, x, y, rect.right - rect.left, rect.bottom - rect.top, flags);
 }
 
+static void calc_win_rect(RECT *rect, int x, int y, int w, int h)
+{
+	rect->left = x;
+	rect->top = y;
+	rect->right = x + w;
+	rect->bottom = y + h;
+	AdjustWindowRect(rect, WS_OVERLAPPEDWINDOW, 0);
+}
+
 void glutReshapeWindow(int xsz, int ysz)
 {
 	RECT rect;
 	unsigned int flags = SWP_SHOWWINDOW;
 
 	if(fullscreen) {
-		rect.left = prev_win_x;
-		rect.top = prev_win_y;
+		calc_win_rect(&rect, prev_win_x, prev_win_y, xsz, ysz);
 		SetWindowLong(win, GWL_STYLE, WS_OVERLAPPEDWINDOW);
 		fullscreen = 0;
 		flags |= SWP_FRAMECHANGED;
 	} else {
 		GetWindowRect(win, &rect);
+		calc_win_rect(&rect, rect.left, rect.top, xsz, ysz);
 	}
+
+	xsz = rect.right - rect.left;
+	ysz = rect.bottom - rect.top;
 	SetWindowPos(win, HWND_NOTOPMOST, rect.left, rect.top, xsz, ysz, flags);
 }
 
@@ -1261,6 +1334,63 @@ void glutSetCursor(int cidx)
 		SetCursor(LoadCursor(0, IDC_ARROW));
 		ShowCursor(1);
 	}
+}
+
+void glutWarpPointer(int x, int y)
+{
+	POINT pt;
+	pt.x = x;
+	pt.y = y;
+
+	ClientToScreen(win, &pt);
+	SetCursorPos(pt.x, pt.y);
+}
+
+void glutSetColor(int idx, float r, float g, float b)
+{
+	PALETTEENTRY col;
+
+	if(idx < 0 || idx >= 256 || !cmap) {
+		return;
+	}
+
+	col.peRed = (int)(r * 255.0f);
+	col.peGreen = (int)(g * 255.0f);
+	col.peBlue = (int)(b * 255.0f);
+	col.peFlags = PC_NOCOLLAPSE;
+
+	SetPaletteEntries(cmap, idx, 1, &col);
+
+	if(dc) {
+		UnrealizeObject(cmap);
+		SelectPalette(dc, cmap, 0);
+		RealizePalette(dc);
+	}
+}
+
+float glutGetColor(int idx, int comp)
+{
+	PALETTEENTRY col;
+
+	if(idx < 0 || idx >= 256 || !cmap) {
+		return -1.0f;
+	}
+
+	if(!GetPaletteEntries(cmap, idx, 1, &col)) {
+		return -1.0f;
+	}
+
+	switch(comp) {
+	case GLUT_RED:
+		return col.peRed / 255.0f;
+	case GLUT_GREEN:
+		return col.peGreen / 255.0f;
+	case GLUT_BLUE:
+		return col.peBlue / 255.0f;
+	default:
+		break;
+	}
+	return -1.0f;
 }
 
 void glutSetKeyRepeat(int repmode)
@@ -1311,7 +1441,7 @@ static unsigned int choose_pixfmt(unsigned int mode)
 	}
 
 	ATTR(WGL_PIXEL_TYPE, mode & GLUT_INDEX ? WGL_TYPE_COLORINDEX : WGL_TYPE_RGBA);
-	ATTR(WGL_COLOR_BITS, 8);
+	ATTR(WGL_COLOR_BITS, mode & GLUT_INDEX ? 8 : 24);
 	if(mode & GLUT_ALPHA) {
 		ATTR(WGL_ALPHA_BITS, 4);
 	}
@@ -1440,6 +1570,7 @@ static int create_window_wglext(const char *title, int width, int height)
 	GETATTR(WGL_DOUBLE_BUFFER, &ctx_info.dblbuf);
 	GETATTR(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, &ctx_info.srgb);
 	GETATTR(WGL_SAMPLES_ARB, &ctx_info.samples);
+
 	return 0;
 
 fail:
@@ -1454,18 +1585,14 @@ fail:
 	return -1;
 }
 
-
 static void create_window(const char *title)
 {
-	int pixfmt;
 	RECT rect;
-	int width, height;
+	int i, pixfmt, width, height;
+	char palbuf[sizeof(LOGPALETTE) + 255 * sizeof(PALETTEENTRY)];
+	LOGPALETTE *logpal;
 
-	rect.left = init_x;
-	rect.top = init_y;
-	rect.right = init_x + init_width;
-	rect.bottom = init_y + init_height;
-	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, 0);
+	calc_win_rect(&rect, init_x, init_y, init_width, init_height);
 	width = rect.right - rect.left;
 	height = rect.bottom - rect.top;
 
@@ -1476,8 +1603,13 @@ static void create_window(const char *title)
 	if(init_mode & GLUT_STEREO) {
 		pfd.dwFlags |= PFD_STEREO;
 	}
-	pfd.iPixelType = init_mode & GLUT_INDEX ? PFD_TYPE_COLORINDEX : PFD_TYPE_RGBA;
-	pfd.cColorBits = 24;
+	if(init_mode & GLUT_INDEX) {
+		pfd.iPixelType = PFD_TYPE_COLORINDEX;
+		pfd.cColorBits = 8;
+	} else {
+		pfd.iPixelType = PFD_TYPE_RGBA;
+		pfd.cColorBits = 24;
+	}
 	if(init_mode & GLUT_ALPHA) {
 		pfd.cAlphaBits = 8;
 	}
@@ -1492,41 +1624,92 @@ static void create_window(const char *title)
 	}
 	pfd.iLayerType = PFD_MAIN_PLANE;
 
-
-	if(create_window_wglext(title, width, height) == -1) {
-
-		if(!(win = CreateWindow("MiniGLUT", title, WS_OVERLAPPEDWINDOW,
-					rect.left, rect.top, width, height, 0, 0, hinst, 0))) {
-			panic("Failed to create window\n");
+	if(init_mode & (GLUT_SRGB | GLUT_MULTISAMPLE)) {
+		if(create_window_wglext(title, width, height) != -1) {
+			goto ctxdone;
 		}
-		dc = GetDC(win);
-
-		if(!(pixfmt = ChoosePixelFormat(dc, &pfd))) {
-			panic("Failed to find suitable pixel format\n");
-		}
-		if(!SetPixelFormat(dc, pixfmt, &pfd)) {
-			panic("Failed to set the selected pixel format\n");
-		}
-		if(!(ctx = wglCreateContext(dc))) {
-			panic("Failed to create the OpenGL context\n");
-		}
-		wglMakeCurrent(dc, ctx);
-
-		DescribePixelFormat(dc, pixfmt, sizeof pfd, &pfd);
-		ctx_info.rsize = pfd.cRedBits;
-		ctx_info.gsize = pfd.cGreenBits;
-		ctx_info.bsize = pfd.cBlueBits;
-		ctx_info.asize = pfd.cAlphaBits;
-		ctx_info.zsize = pfd.cDepthBits;
-		ctx_info.ssize = pfd.cStencilBits;
-		ctx_info.dblbuf = pfd.dwFlags & PFD_DOUBLEBUFFER ? 1 : 0;
-		ctx_info.samples = 0;
-		ctx_info.srgb = 0;
 	}
 
+	/* if we don't need sRGB or multisample, or if the wglChoosePixelFormat method
+	 * failed, just use the old-style ChoosePixelFormat method instead
+	 */
+	if(!(win = CreateWindow("MiniGLUT", title, WS_OVERLAPPEDWINDOW,
+				rect.left, rect.top, width, height, 0, 0, hinst, 0))) {
+		panic("Failed to create window\n");
+	}
+	dc = GetDC(win);
+
+	if(!(pixfmt = ChoosePixelFormat(dc, &pfd))) {
+		panic("Failed to find suitable pixel format\n");
+	}
+	if(!SetPixelFormat(dc, pixfmt, &pfd)) {
+		panic("Failed to set the selected pixel format\n");
+	}
+	if(!(ctx = wglCreateContext(dc))) {
+		panic("Failed to create the OpenGL context\n");
+	}
+	wglMakeCurrent(dc, ctx);
+
+	DescribePixelFormat(dc, pixfmt, sizeof pfd, &pfd);
+	ctx_info.rsize = pfd.cRedBits;
+	ctx_info.gsize = pfd.cGreenBits;
+	ctx_info.bsize = pfd.cBlueBits;
+	ctx_info.asize = pfd.cAlphaBits;
+	ctx_info.zsize = pfd.cDepthBits;
+	ctx_info.ssize = pfd.cStencilBits;
+	ctx_info.dblbuf = pfd.dwFlags & PFD_DOUBLEBUFFER ? 1 : 0;
+	ctx_info.samples = 0;
+	ctx_info.srgb = 0;
+
+ctxdone:
 	ShowWindow(win, 1);
 	SetForegroundWindow(win);
 	SetFocus(win);
+
+	if(init_mode & GLUT_INDEX) {
+		logpal = (LOGPALETTE*)palbuf;
+
+		GetSystemPaletteEntries(dc, 0, 256, logpal->palPalEntry);
+
+		logpal->palVersion = 0x300;
+		logpal->palNumEntries = 256;
+
+		if(!(cmap = CreatePalette(logpal))) {
+			panic("Failed to create palette in indexed mode");
+		}
+		SelectPalette(dc, cmap, 0);
+		RealizePalette(dc);
+
+		cmap_size = 256;
+	} else {
+		if(GetDeviceCaps(dc, BITSPIXEL) * GetDeviceCaps(dc, PLANES) <= 8) {
+			/* for RGB mode in 8bpp displays we also need to set up a palette
+			 * with RGB 332 colors
+			 */
+			logpal = (LOGPALETTE*)palbuf;
+
+			logpal->palVersion = 0x300;
+			logpal->palNumEntries = 256;
+
+			for(i=0; i<256; i++) {
+				int r = i & 7;
+				int g = (i >> 3) & 7;
+				int b = (i >> 5) & 3;
+
+				logpal->palPalEntry[i].peRed = (r << 5) | (r << 2) | (r >> 1);
+				logpal->palPalEntry[i].peGreen = (g << 5) | (g << 2) | (g >> 1);
+				logpal->palPalEntry[i].peBlue = (b << 6) | (b << 4) | (b << 2) | b;
+				logpal->palPalEntry[i].peFlags = PC_NOCOLLAPSE;
+			}
+
+			if((cmap = CreatePalette(logpal))) {
+				SelectPalette(dc, cmap, 0);
+				RealizePalette(dc);
+				cmap_size = 256;
+			}
+		}
+	}
+
 	upd_pending = 1;
 	reshape_pending = 1;
 }
@@ -1658,6 +1841,16 @@ static void update_modkeys(void)
 	}
 }
 
+#ifndef VK_OEM_1
+#define VK_OEM_1	0xba
+#define VK_OEM_2	0xbf
+#define VK_OEM_3	0xc0
+#define VK_OEM_4	0xdb
+#define VK_OEM_5	0xdc
+#define VK_OEM_6	0xdd
+#define VK_OEM_7	0xde
+#endif
+
 static int translate_vkey(int vkey)
 {
 	switch(vkey) {
@@ -1669,6 +1862,13 @@ static int translate_vkey(int vkey)
 	case VK_UP: return GLUT_KEY_UP;
 	case VK_RIGHT: return GLUT_KEY_RIGHT;
 	case VK_DOWN: return GLUT_KEY_DOWN;
+	case VK_OEM_1: return ';';
+	case VK_OEM_2: return '/';
+	case VK_OEM_3: return '`';
+	case VK_OEM_4: return '[';
+	case VK_OEM_5: return '\\';
+	case VK_OEM_6: return ']';
+	case VK_OEM_7: return '\'';
 	default:
 		break;
 	}
@@ -1676,7 +1876,7 @@ static int translate_vkey(int vkey)
 	if(vkey >= 'A' && vkey <= 'Z') {
 		vkey += 32;
 	} else if(vkey >= VK_F1 && vkey <= VK_F12) {
-		vkey += GLUT_KEY_F1 - VK_F1;
+		vkey -= VK_F1 + GLUT_KEY_F1;
 	}
 
 	return vkey;
@@ -1718,7 +1918,7 @@ static void get_screen_size(int *scrw, int *scrh)
 }
 #endif	/* BUILD_WIN32 */
 
-#if defined(__unix__) || defined(__APPLE__)
+#if defined(unix) || defined(__unix__) || defined(__APPLE__)
 #include <sys/time.h>
 
 #ifdef MINIGLUT_USE_LIBC
