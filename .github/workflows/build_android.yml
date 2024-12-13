@@ -22,7 +22,7 @@ jobs:
         ln -s toolchains/llvm/prebuilt/linux-x86_64/sysroot $ANDROID_HOME/ndk/23.2.8568313/sysroot 
         make -f Makefile.android SDK=$ANDROID_HOME NDK=$ANDROID_HOME/ndk/23.2.8568313 AVER=27
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: demo-android
         path: andemo.apk
